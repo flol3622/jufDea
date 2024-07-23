@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1276</width>
+    <height>712</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <item>
+     <widget class="QFrame" name="frame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Data</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QTableWidget" name="tableWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>350</width>
+              <height>0</height>
+             </size>
+            </property>
+            <column>
+             <property name="text">
+              <string>Naam</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Kleur</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Symbool</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QPushButton" name="addRowButton">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string> new row</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>icons/plus-circle.svg</normaloff>icons/plus-circle.svg</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="removeRowButton">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string> delete last row</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>icons/dash-circle.svg</normaloff>icons/dash-circle.svg</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="savePDFbutton">
+            <property name="text">
+             <string>Save PDF</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Preview</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="previewWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>842</width>
+              <height>595</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1276</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuOpslaan">
+    <property name="title">
+     <string>Files</string>
+    </property>
+    <addaction name="actionOntwerp_oplsaan"/>
+    <addaction name="actionOpenen"/>
+    <addaction name="actionKopie_opslaan_als"/>
+    <addaction name="actionKopie_opslaan_als_2"/>
+   </widget>
+   <widget class="QMenu" name="menuAdvanced">
+    <property name="title">
+     <string>Advanced</string>
+    </property>
+    <addaction name="actionSettings"/>
+    <addaction name="actionBackground"/>
+    <addaction name="actionSide"/>
+   </widget>
+   <addaction name="menuOpslaan"/>
+   <addaction name="menuAdvanced"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOntwerp_oplsaan">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/file-earmark-plus.svg</normaloff>icons/file-earmark-plus.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Nieuw</string>
+   </property>
+  </action>
+  <action name="actionKopie_opslaan_als">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/floppy.svg</normaloff>icons/floppy.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Opslaan</string>
+   </property>
+  </action>
+  <action name="actionKopie_opslaan_als_2">
+   <property name="text">
+    <string>Kopie opslaan als ...</string>
+   </property>
+  </action>
+  <action name="actionPdf_exporteren">
+   <property name="text">
+    <string>PDF exporteren als ...</string>
+   </property>
+  </action>
+  <action name="actionOpenen">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/folder2-open.svg</normaloff>icons/folder2-open.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Openen</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionBackground">
+   <property name="text">
+    <string>Upload background</string>
+   </property>
+  </action>
+  <action name="actionSide">
+   <property name="text">
+    <string>Upload side pictures</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

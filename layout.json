@@ -1,0 +1,72 @@
+{
+  "Types": {
+    "Extra small": {
+      "Size & positions": {
+        "width (mm)": 65,
+        "height (mm)": 20,
+        "top (mm)": [100],
+        "left (mm)": [100]
+      },
+      "Background": {
+        "margin (mm)": "2"
+      },
+      "Text": {
+        "font-size": 22,
+        "margin (mm)": 5
+      }
+    },
+    "Small": {
+      "Size & positions": {
+        "width (mm)": 70,
+        "height (mm)": 25,
+        "top (mm)": [20, 55, 95, 20, 55],
+        "left (mm)": [25, 25, 25, 205, 205]
+      },
+      "Background": {
+        "margin (mm)": "2"
+      },
+      "Text": {
+        "font-size": 22,
+        "margin (mm)": 5
+      }
+    },
+    "Medium": {
+      "Size & positions": {
+        "width (mm)": 95,
+        "height (mm)": 50,
+        "top (mm)": [20, 140],
+        "left (mm)": [100, 25]
+      },
+      "Background": {
+        "margin (mm)": "2"
+      },
+      "Text": {
+        "font-size": 26,
+        "margin (mm)": 5
+      }
+    },
+    "Large": {
+      "Size & positions": {
+        "width (mm)": 95,
+        "height (mm)": 95,
+        "top (mm)": [95],
+        "left (mm)": [180]
+      },
+      "Background": {
+        "margin (mm)": "15",
+        "top offset (mm)": -10
+      },
+      "Text": {
+        "font-size": 48,
+        "margin (mm)": 5,
+        "margin-bottom (mm)": 0
+      }
+    }
+  },
+  "Background-item": {
+    "top (%)": 10,
+    "left (%)": 80,
+    "width (%)": 10,
+    "height (%)": 10
+  }
+}
