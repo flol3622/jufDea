@@ -1,12 +1,16 @@
-# Copyright (C) 2022 The Qt Company Ltd.
-# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
-
 import json
 import sys
 from typing import Any, List, Dict, Union
 
-from PySide6.QtWidgets import QTreeView, QApplication, QHeaderView
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt, QFileInfo
+from PyQt6.QtWidgets import QTreeView, QApplication, QHeaderView
+from PyQt6.QtCore import (
+    QAbstractItemModel,
+    QModelIndex,
+    QObject,
+    Qt,
+    QFileInfo,
+    pyqtSignal,
+)
 
 
 class TreeItem:
@@ -40,12 +44,12 @@ class TreeItem:
         return self._parent._children.index(self) if self._parent else 0
 
     @property
-    def key(self) -> str:
+    def key(self) -> Union[str, int]:
         """Return the key name"""
         return self._key
 
     @key.setter
-    def key(self, key: str):
+    def key(self, key: Union[str, int]):
         """Set key name of the current item"""
         self._key = key
 
@@ -73,7 +77,7 @@ class TreeItem:
     def load(
         cls, value: Union[List, Dict], parent: "TreeItem" = None, sort=True
     ) -> "TreeItem":
-        """Create a 'root' TreeItem from a nested list or a nested dictonary
+        """Create a 'root' TreeItem from a nested list or a nested dictionary
 
         Examples:
             with open("file.json") as file:
@@ -112,16 +116,18 @@ class TreeItem:
 
 
 class JsonModel(QAbstractItemModel):
-    """ An editable model of Json data """
+    """An editable model of Json data"""
 
-    def __init__(self, parent: QObject = None):
+    dataChanged = pyqtSignal(QModelIndex, QModelIndex, list)
+
+    def __init__(self, json_path: str, parent: QObject = None):
         super().__init__(parent)
-
         self._rootItem = TreeItem()
         self._headers = ("key", "value")
+        self.json_path = json_path
 
     def clear(self):
-        """ Clear data from the model """
+        """Clear data from the model"""
         self.load({})
 
     def load(self, document: dict):
@@ -131,9 +137,9 @@ class JsonModel(QAbstractItemModel):
             document (dict): JSON-compatible dictionary
         """
 
-        assert isinstance(
-            document, (dict, list, tuple)
-        ), "`document` must be of dict, list or tuple, " f"not {type(document)}"
+        assert isinstance(document, (dict, list, tuple)), (
+            "`document` must be of dict, list or tuple, " f"not {type(document)}"
+        )
 
         self.beginResetModel()
 
@@ -144,7 +150,7 @@ class JsonModel(QAbstractItemModel):
 
         return True
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         """Override from QAbstractItemModel
 
         Return data from a json item according index and role
@@ -155,18 +161,20 @@ class JsonModel(QAbstractItemModel):
 
         item = index.internalPointer()
 
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if index.column() == 0:
                 return item.key
 
             if index.column() == 1:
                 return item.value
 
-        elif role == Qt.EditRole:
+        elif role == Qt.ItemDataRole.EditRole:
             if index.column() == 1:
                 return item.value
 
-    def setData(self, index: QModelIndex, value: Any, role: Qt.ItemDataRole):
+    def setData(
+        self, index: QModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole
+    ):
         """Override from QAbstractItemModel
 
         Set json item according index and role
@@ -177,29 +185,43 @@ class JsonModel(QAbstractItemModel):
             role (Qt.ItemDataRole)
 
         """
-        if role == Qt.EditRole:
+        if role == Qt.ItemDataRole.EditRole:
             if index.column() == 1:
                 item = index.internalPointer()
-                item.value = str(value)
+                try:
+                    # First try to convert to int, if it fails, try to convert to float
+                    item.value = int(value)
+                    item.value_type = int
+                except ValueError:
+                    try:
+                        item.value = float(value)
+                        item.value_type = float
+                    except ValueError:
+                        item.value = str(value)  # Fallback to string if conversion fails
+                        item.value_type = str
 
-                self.dataChanged.emit(index, index, [Qt.EditRole])
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.EditRole])
+                self.save_json()
 
                 return True
 
         return False
-
+    
     def headerData(
-        self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
     ):
         """Override from QAbstractItemModel
 
         For the JsonModel, it returns only data for columns (orientation = Horizontal)
 
         """
-        if role != Qt.DisplayRole:
+        if role != Qt.ItemDataRole.DisplayRole:
             return None
 
-        if orientation == Qt.Horizontal:
+        if orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
 
     def index(self, row: int, column: int, parent=QModelIndex()) -> QModelIndex:
@@ -262,7 +284,7 @@ class JsonModel(QAbstractItemModel):
         """
         return 2
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Override from QAbstractItemModel
 
         Return flags of index
@@ -270,12 +292,11 @@ class JsonModel(QAbstractItemModel):
         flags = super(JsonModel, self).flags(index)
 
         if index.column() == 1:
-            return Qt.ItemIsEditable | flags
+            return Qt.ItemFlag.ItemIsEditable | flags
         else:
             return flags
 
     def to_json(self, item=None):
-
         if item is None:
             item = self._rootItem
 
@@ -288,7 +309,7 @@ class JsonModel(QAbstractItemModel):
                 document[ch.key] = self.to_json(ch)
             return document
 
-        elif item.value_type == list:
+        elif item.value_type is list:
             document = []
             for i in range(nchild):
                 ch = item.child(i)
@@ -296,25 +317,38 @@ class JsonModel(QAbstractItemModel):
             return document
 
         else:
-            return item.value
+            try:
+                # Return the value as its original type
+                if item.value_type is int:
+                    return int(item.value)
+                elif item.value_type is float:
+                    return float(item.value)
+                else:
+                    return str(item.value)
+            except ValueError:
+                return str(item.value)  # Fallback to string if conversion fails
+
+    def save_json(self):
+        """Save the current model data to the JSON file."""
+        data = self.to_json()
+        with open(self.json_path, "w") as file:
+            json.dump(data, file, indent=4)
 
 
 if __name__ == "__main__":
-
     app = QApplication(sys.argv)
     view = QTreeView()
-    model = JsonModel()
+    json_path = QFileInfo(__file__).absoluteDir().filePath("layout.json")
+    model = JsonModel(json_path)
 
     view.setModel(model)
-
-    json_path = QFileInfo(__file__).absoluteDir().filePath("layout.json")
 
     with open(json_path) as file:
         document = json.load(file)
         model.load(document)
 
     view.show()
-    view.header().setSectionResizeMode(0, QHeaderView.Stretch)
+    view.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
     view.setAlternatingRowColors(True)
     view.resize(500, 300)
     app.exec()

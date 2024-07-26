@@ -13,9 +13,12 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QLineEdit,
     QMessageBox,
+    QTreeView,
+    QHeaderView,
 )
 
 import tempfile
+from Settings import JsonModel
 
 
 def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
@@ -54,6 +57,7 @@ class Ui(QtWidgets.QMainWindow):
         self.removeRowButton.clicked.connect(self.removeRow)
         self.savePDFbutton.clicked.connect(self.save_pdf)
         self.actionSide.triggered.connect(self.openSideImages)
+        self.actionSettings.triggered.connect(self.openSettings)
 
         self.colors = {
             "red": [255, 0, 0],
@@ -193,6 +197,24 @@ class Ui(QtWidgets.QMainWindow):
             temp.flush()
         
         print(self.sideImages, self.backgroundImage)
+    
+    def openSettings(self):
+        self.tree_view = QTreeView()
+        self.model = JsonModel()
+        
+        # Load the JSON data into the model
+        json_path = os.path.join(base_dir, "layout.json")
+        with open(json_path) as file:
+            document = json.load(file)
+            self.model.load(document)
+        
+        self.tree_view.setModel(self.model)
+        self.tree_view.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree_view.setAlternatingRowColors(True)
+        self.tree_view.resize(500, 300)
+        self.tree_view.show()
+
+
         
 
 
