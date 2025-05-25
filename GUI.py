@@ -15,7 +15,6 @@ from PyQt6.QtWidgets import (
     QHeaderView,
 )
 
-import tempfile
 from Settings import JsonModel
 from pprint import pprint
 
@@ -92,7 +91,7 @@ class Ui(QtWidgets.QMainWindow):
         row = self.tableWidget.currentRow()
         name = self.tableWidget.cellWidget(row, 0).text()
         color = self.tableWidget.cellWidget(row, 1).currentText()
-        scene = self.tableWidget.cellWidget(row, 2).currentText()        
+        scene = self.tableWidget.cellWidget(row, 2).currentText()
         image_path = self._potloden_map[(scene, color)]
         self.pdf = MyPDF(unit="mm", format="A4")
         self.pdf.new_page(image_path, name)

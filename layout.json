@@ -27,7 +27,8 @@
         },
         "Fest": {
             "Background": {
-                "margin (mm)": 2
+                "margin (mm)": 1,
+                "top offset (mm)": 0
             },
             "Size & positions": {
                 "height (mm)": 60,
@@ -35,13 +36,15 @@
                     124
                 ],
                 "top (mm)": [
-                    140
+                    130
                 ],
-                "width (mm)": 40
+                "width (mm)": 40,
+                "portrait": true
             },
             "Text": {
                 "font-size": 18,
-                "margin (mm)": 5
+                "margin (mm)": 2,
+                "margin-bottom (mm)": 2
             }
         },
         "Large": {
@@ -57,7 +60,8 @@
                 "top (mm)": [
                     95
                 ],
-                "width (mm)": 95
+                "width (mm)": 95,
+                "portrait": true
             },
             "Text": {
                 "font-size": 48,

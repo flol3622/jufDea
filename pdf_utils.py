@@ -32,48 +32,70 @@ class MyPDF(FPDF):
             for type, details in json_data["Types"].items():
                 width = details["Size & positions"]["width (mm)"]
                 height = details["Size & positions"]["height (mm)"]
+                portrait = details["Size & positions"].get("portrait", False)
                 tops = details["Size & positions"]["top (mm)"]
                 lefts = details["Size & positions"]["left (mm)"]
                 margin = int(details["Background"]["margin (mm)"])
                 top_offset = int(details["Background"].get("top offset (mm)", 0))
                 font_size = int(details["Text"]["font-size"])
                 text_margin = int(details["Text"]["margin (mm)"])
-                text_bottomOffset = int(
-                    details["Text"].get("margin-bottom (mm)", 0)
-                )
+                text_bottomOffset = int(details["Text"].get("margin-bottom (mm)", 0))
 
                 for top, left in zip(tops, lefts):
+                    #  Rectangle
                     x = left
                     y = top
                     self.rect(x, y, width, height, "D")
 
-                    sizeImg = height - 2 * margin
-                    self.image(
-                        image_path, x + margin, y + margin + top_offset, 0, sizeImg
+                    # Image
+                    sizeImg = (
+                        height - 2 * margin if not portrait else width - 2 * margin
                     )
 
+                    # Text position logic
                     font_box = font_size * 0.352778 * 1.3
-
-                    if type != "Large":
-                        txtX = x + sizeImg + margin + text_margin
-                        txtY = y + (height - font_box) / 2
-                        txtW = width - sizeImg - margin - 2 * text_margin
-                    else:
+                    if type == "Fest":
+                        # Place text above the image for Fest
+                        txtX = x + text_margin
+                        txtY = y + text_margin
+                        txtW = width - 2 * text_margin
+                        imgX = x + margin
+                        imgY = (
+                            y
+                            + font_box
+                            + 2 * text_margin
+                            + top_offset
+                            - text_bottomOffset
+                        )
+                        # Position for bottom text (Placeholder)
+                        bottom_txtX = txtX
+                        bottom_txtY = imgY + sizeImg + text_margin
+                        bottom_txtW = txtW
+                    elif portrait:
                         txtX = x + text_margin
                         txtY = y + height - font_box - text_margin - text_bottomOffset
                         txtW = width - 2 * text_margin
+                        imgX = x + margin
+                        imgY = y + margin + top_offset
+                    else:
+                        txtX = x + sizeImg + margin + text_margin
+                        txtY = y + (height - font_box) / 2
+                        txtW = width - sizeImg - margin - 2 * text_margin
+                        imgX = x + margin
+                        imgY = y + margin + top_offset
 
                     self.set_font("SchoolKX_new_SB", size=font_size)
+
+                    # Reduce font size if text is too wide
                     while self.get_string_width(name) > txtW and font_size > 1:
                         font_size -= 1  # Decrease font size by 1
                         self.set_font("SchoolKX_new_SB", size=font_size)
 
+                    # Center the text
                     first_letter = name[0] if name else ""
                     remaining_text = name[1:] if len(name) > 1 else ""
 
-                    self.set_xy(
-                        txtX + (txtW - self.get_string_width(name)) / 2, txtY
-                    )
+                    self.set_xy(txtX + (txtW - self.get_string_width(name)) / 2, txtY)
 
                     self.set_text_color(0, 128, 0)  # RGB for green
                     self.cell(
@@ -92,6 +114,26 @@ class MyPDF(FPDF):
                         border=0,
                         align="C",
                     )
+
+                    # Draw the image (after text for Fest, otherwise as before)
+                    self.image(image_path, imgX, imgY, 0, sizeImg)
+
+                    # For Fest, add another text under the image
+                    if type == "Fest":
+                        self.set_font("SchoolKX_new_SB", size=font_size)
+                        self.set_text_color(0, 0, 0)  # Black
+                        self.set_xy(
+                            bottom_txtX
+                            + (bottom_txtW - self.get_string_width("Placeholder")) / 2,
+                            bottom_txtY,
+                        )
+                        self.cell(
+                            w=self.get_string_width("Placeholder"),
+                            h=font_box,
+                            txt="3-4-2020",
+                            border=0,
+                            align="C",
+                        )
 
         except Exception as e:
             QMessageBox.critical(None, "Error", str(e))
