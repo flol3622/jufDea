@@ -1,0 +1,14 @@
+[project]
+name = "jufdea"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "auto-py-to-exe>=2.46.0",
+    "fpdf>=1.7.2",
+    "frontend>=0.0.3",
+    "pikepdf>=9.7.0",
+    "pymupdf>=1.25.5",
+    "pyqt6>=6.9.0",
+]
