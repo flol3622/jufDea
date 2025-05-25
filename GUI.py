@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 
 import tempfile
 from Settings import JsonModel
+from pprint import pprint
 
 
 # get the base directory of the file, important for the packaging,
@@ -37,31 +38,30 @@ class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi(os.path.join(base_dir, "GUI/layout.ui"), self)
+        self.backgroundImageFolder = os.path.join(base_dir, "GUI", "images", "potloden")
+        self._scenes, self._colors, self._potloden_map = self._load_potloden_images()
         self.newRow()
         self.addRowButton.clicked.connect(self.addRow)
         self.removeRowButton.clicked.connect(self.removeRow)
         self.savePDFbutton.clicked.connect(self.save_pdf)
-        self.actionSide.triggered.connect(self.openSideImages)
         self.actionSettings.triggered.connect(self.openSettings)
+        self.backgroundImageFolder = os.path.join(base_dir, "GUI", "images", "potloden")
 
-        self.colors = {
-            "red": [255, 0, 0],
-            "green": [0, 255, 0],
-            "blue": [0, 0, 255],
-            "yellow": [255, 255, 0],
-            "purple": [255, 0, 255],
-            "orange": [255, 165, 0],
-        }
-
-        self.sideImages = [
-            "./GUI/images/side1.png",
-            "./GUI/images/side2.png",
-            "./GUI/images/side3.png",
-            "./GUI/images/side4.png",
-        ]
-
-        self.backgroundImage = "./GUI/images/bird.jpg"
-        self.updateTempImages()
+    def _load_potloden_images(self):
+        scenes = set()
+        colors = set()
+        potloden_map = {}
+        for f_name in os.listdir(self.backgroundImageFolder):
+            if not f_name.endswith(".jpg"):
+                continue
+            scene, color = os.path.splitext(f_name)[0].split("-")
+            scenes.add(scene)
+            colors.add(color)
+            potloden_map[(scene, color)] = os.path.join(
+                self.backgroundImageFolder, f_name
+            )
+        pprint(potloden_map)
+        return list(sorted(scenes)), list(sorted(colors)), potloden_map
 
     def newRow(self):
         class FLineEdit(QLineEdit):
@@ -76,30 +76,26 @@ class Ui(QtWidgets.QMainWindow):
 
         rowPosition = self.tableWidget.rowCount()
         self.tableWidget.insertRow(rowPosition)
-
-        # add text input and wait for change to trigger update_pdf_text
         name = FLineEdit("name")
         self.tableWidget.setCellWidget(rowPosition, 0, name)
         name.textChanged.connect(self.update_pdf_props)
-
         color = FComboBox()
-        color.addItems(["red", "green", "blue", "yellow", "purple", "orange"])
+        color.addItems(self._colors)
         self.tableWidget.setCellWidget(rowPosition, 1, color)
         color.currentIndexChanged.connect(self.update_pdf_props)
-
-        item = FComboBox()
-        item.addItems(["Square", "Circle"])
-        self.tableWidget.setCellWidget(rowPosition, 2, item)
-        item.currentIndexChanged.connect(self.update_pdf_props)
+        scene = FComboBox()
+        scene.addItems(self._scenes)
+        self.tableWidget.setCellWidget(rowPosition, 2, scene)
+        scene.currentIndexChanged.connect(self.update_pdf_props)
 
     def update_pdf_props(self):
         row = self.tableWidget.currentRow()
         name = self.tableWidget.cellWidget(row, 0).text()
         color = self.tableWidget.cellWidget(row, 1).currentText()
-        item = self.tableWidget.cellWidget(row, 2).currentText()
-
+        scene = self.tableWidget.cellWidget(row, 2).currentText()        
+        image_path = self._potloden_map[(scene, color)]
         self.pdf = MyPDF(unit="mm", format="A4")
-        self.pdf.new_page("./GUI/images/bird.jpg", name, self.colors[color], item)
+        self.pdf.new_page(image_path, name)
         self.update_pdf_view()
 
     def update_pdf_view(self):
@@ -119,16 +115,14 @@ class Ui(QtWidgets.QMainWindow):
         for row in range(self.tableWidget.rowCount()):
             name = self.tableWidget.cellWidget(row, 0).text()
             color = self.tableWidget.cellWidget(row, 1).currentText()
-            item = self.tableWidget.cellWidget(row, 2).currentText()
+            scene = self.tableWidget.cellWidget(row, 2).currentText()
+            image_path = self._potloden_map[(scene, color)]
             if row == 0:
                 self.pdf = MyPDF(unit="mm", format="A4")
-
-            self.pdf.new_page("./GUI/images/bird.jpg", name, self.colors[color], item)
-
+            self.pdf.new_page(image_path, name)
         outPath, _ = QFileDialog.getSaveFileName(
             self, "Save PDF", "", "PDF Files (*.pdf)"
         )
-
         if outPath:
             self.pdf.output(outPath)
             self.collectAndAddAtt(outPath)
@@ -140,50 +134,20 @@ class Ui(QtWidgets.QMainWindow):
     def collectAndAddAtt(self, pdf_path):
         with open("layout.json", "r") as file:
             json_data = json.load(file)
-
         table_data = []
         for row in range(self.tableWidget.rowCount()):
             name = self.tableWidget.cellWidget(row, 0).text()
             color = self.tableWidget.cellWidget(row, 1).currentText()
-            item = self.tableWidget.cellWidget(row, 2).currentText()
-            table_data.append([name, color, item])
-
+            scene = self.tableWidget.cellWidget(row, 2).currentText()
+            table_data.append([name, scene, color])
         table_dataBytes = json.dumps(table_data, indent=4).encode()
         json_dataBytes = json.dumps(json_data, indent=4).encode()
-
-        addAttachments(
-            pdf_path, json_dataBytes, "./GUI/images/bird.jpg", table_dataBytes
-        )
+        addAttachments(pdf_path, json_dataBytes, self.backgroundImage, table_dataBytes)
 
     def removeRow(self):
         if self.tableWidget.rowCount() > 1:
             self.tableWidget.removeRow(self.tableWidget.rowCount() - 1)
             self.update_pdf_props()
-
-    def openSideImages(self):
-        from SideImages import Ui as SideImages
-
-        self.sideImages = SideImages(self)
-        self.sideImages.show()
-
-    def updateTempImages(self):
-        # save self.sideImages to a temporary file
-        # get suffix from the file name
-        for i, path in enumerate(self.sideImages):
-            if path:
-                suffix = os.path.splitext(path)[1]
-                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
-                    temp.write(open(path, "rb").read())
-                    self.sideImages[i] = temp.name
-                    temp.flush()
-
-        suffix = os.path.splitext(self.backgroundImage)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
-            temp.write(open(self.backgroundImage, "rb").read())
-            self.backgroundImage = temp.name
-            temp.flush()
-
-        print(self.sideImages, self.backgroundImage)
 
     def openSettings(self):
         self.tree_view = QTreeView()

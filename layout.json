@@ -25,6 +25,25 @@
                 "margin (mm)": 5
             }
         },
+        "Fest": {
+            "Background": {
+                "margin (mm)": 2
+            },
+            "Size & positions": {
+                "height (mm)": 60,
+                "left (mm)": [
+                    124
+                ],
+                "top (mm)": [
+                    140
+                ],
+                "width (mm)": 40
+            },
+            "Text": {
+                "font-size": 18,
+                "margin (mm)": 5
+            }
+        },
         "Large": {
             "Background": {
                 "margin (mm)": 15,

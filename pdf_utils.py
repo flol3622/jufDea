@@ -18,15 +18,10 @@ def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
 
 
 class MyPDF(FPDF):
-    def draw(self, image_path, name, color, item):
+    def draw(self, image_path, name):
         try:
             with open("layout.json", "r") as file:
                 json_data = json.load(file)
-
-            iWidth = float(json_data["Background-item"]["width (%)"])
-            iHeight = float(json_data["Background-item"]["height (%)"])
-            iTop = float(json_data["Background-item"]["top (%)"])
-            iLeft = float(json_data["Background-item"]["left (%)"])
 
             self.add_font(
                 "SchoolKX_new_SB",
@@ -56,26 +51,6 @@ class MyPDF(FPDF):
                     self.image(
                         image_path, x + margin, y + margin + top_offset, 0, sizeImg
                     )
-
-                    if item == "Square":
-                        self.set_fill_color(color[0], color[1], color[2])
-                        self.rect(
-                            x + sizeImg * iLeft / 100 + margin,
-                            y + sizeImg * iTop / 100 + margin + top_offset,
-                            sizeImg * iWidth / 100,
-                            sizeImg * iHeight / 100,
-                            "F",
-                        )
-
-                    elif item == "Circle":
-                        self.set_fill_color(color[0], color[1], color[2])
-                        self.ellipse(
-                            x + sizeImg * iLeft / 100 + margin,
-                            y + sizeImg * iTop / 100 + margin + top_offset,
-                            sizeImg * iWidth / 100,
-                            sizeImg * iHeight / 100,
-                            "F",
-                        )
 
                     font_box = font_size * 0.352778 * 1.3
 
@@ -121,6 +96,6 @@ class MyPDF(FPDF):
         except Exception as e:
             QMessageBox.critical(None, "Error", str(e))
 
-    def new_page(self, image_path, name, color, item):
+    def new_page(self, image_path, name):
         self.add_page(orientation="L")
-        self.draw(image_path, name, color, item)
+        self.draw(image_path, name)

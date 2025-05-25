@@ -62,7 +62,7 @@
             </column>
             <column>
              <property name="text">
-              <string>Symbool</string>
+              <string>Scene</string>
              </property>
             </column>
            </widget>
