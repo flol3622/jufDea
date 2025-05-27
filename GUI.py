@@ -62,6 +62,8 @@ class Ui(QtWidgets.QMainWindow):
                 super().focusInEvent(event)
                 self.update_pdf_props()
 
+        from PyQt6.QtGui import QIntValidator
+
         rowPosition = self.tableWidget.rowCount()
         self.tableWidget.insertRow(rowPosition)
         name = FLineEdit("name")
@@ -79,6 +81,12 @@ class Ui(QtWidgets.QMainWindow):
         birth_date = FLineEdit("1-1-2000")
         self.tableWidget.setCellWidget(rowPosition, 3, birth_date)
         birth_date.textChanged.connect(self.update_pdf_props)
+        # Add Group column (QComboBox with values 1, 2, 3, default 1)
+        group = FComboBox()
+        group.addItems(["1", "2", "3"])
+        group.setCurrentIndex(0)
+        self.tableWidget.setCellWidget(rowPosition, 4, group)
+        group.currentIndexChanged.connect(self.update_pdf_props)
 
     def update_pdf_props(self):
         row = self.tableWidget.currentRow()
@@ -86,6 +94,7 @@ class Ui(QtWidgets.QMainWindow):
         color = self.tableWidget.cellWidget(row, 1).currentText()
         scene = self.tableWidget.cellWidget(row, 2).currentText()
         birth_date = self.tableWidget.cellWidget(row, 3).text()
+        # group = self.tableWidget.cellWidget(row, 4).currentText()  # No longer used for preview
         image_path = self._potloden_map[(scene, color)]
         self.pdf = MyPDF(unit="mm", format="A4")
         self.pdf.new_page(image_path, name, birth_date)
@@ -110,10 +119,21 @@ class Ui(QtWidgets.QMainWindow):
             color = self.tableWidget.cellWidget(row, 1).currentText()
             scene = self.tableWidget.cellWidget(row, 2).currentText()
             birth_date = self.tableWidget.cellWidget(row, 3).text()
+            group = self.tableWidget.cellWidget(row, 4).currentText()
             image_path = self._potloden_map[(scene, color)]
             if row == 0:
                 self.pdf = MyPDF(unit="mm", format="A4")
             self.pdf.new_page(image_path, name, birth_date)
+        # After all normal pages, add special pages for each group (if needed)
+        for row in range(self.tableWidget.rowCount()):
+            name = self.tableWidget.cellWidget(row, 0).text()
+            color = self.tableWidget.cellWidget(row, 1).currentText()
+            scene = self.tableWidget.cellWidget(row, 2).currentText()
+            birth_date = self.tableWidget.cellWidget(row, 3).text()
+            group = self.tableWidget.cellWidget(row, 4).currentText()
+            image_path = self._potloden_map[(scene, color)]
+            if group and group in ["1", "2"]:
+                self.pdf.add_special_page(image_path, name, birth_date, special_text=group)
         outPath, _ = QFileDialog.getSaveFileName(
             self, "Save PDF", "", "PDF Files (*.pdf)"
         )
@@ -134,7 +154,8 @@ class Ui(QtWidgets.QMainWindow):
             color = self.tableWidget.cellWidget(row, 1).currentText()
             scene = self.tableWidget.cellWidget(row, 2).currentText()
             birth_date = self.tableWidget.cellWidget(row, 3).text()
-            table_data.append([name, scene, color, birth_date])
+            group = self.tableWidget.cellWidget(row, 4).currentText()
+            table_data.append([name, scene, color, birth_date, group])
         table_dataBytes = json.dumps(table_data, indent=4).encode()
         json_dataBytes = json.dumps(json_data, indent=4).encode()
         addAttachments(pdf_path, json_dataBytes, self.backgroundImage, table_dataBytes)
