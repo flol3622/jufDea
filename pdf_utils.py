@@ -1,7 +1,6 @@
 import json
 import pikepdf
 from fpdf import FPDF
-from PyQt6.QtWidgets import QMessageBox
 
 
 def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
@@ -18,7 +17,7 @@ def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
 
 
 class MyPDF(FPDF):
-    def draw(self, image_path, name):
+    def draw(self, image_path, name, birth_date):
         try:
             with open("layout.json", "r") as file:
                 json_data = json.load(file)
@@ -124,20 +123,20 @@ class MyPDF(FPDF):
                         self.set_text_color(0, 0, 0)  # Black
                         self.set_xy(
                             bottom_txtX
-                            + (bottom_txtW - self.get_string_width("Placeholder")) / 2,
+                            + (bottom_txtW - self.get_string_width(birth_date)) / 2,
                             bottom_txtY,
                         )
                         self.cell(
-                            w=self.get_string_width("Placeholder"),
+                            w=self.get_string_width(birth_date),
                             h=font_box,
-                            txt="3-4-2020",
+                            txt=birth_date,
                             border=0,
                             align="C",
                         )
 
-        except Exception as e:
-            QMessageBox.critical(None, "Error", str(e))
+        except Exception:
+            pass  # Removed QMessageBox.critical (no GUI dependency)
 
-    def new_page(self, image_path, name):
+    def new_page(self, image_path, name, birth_date):
         self.add_page(orientation="L")
-        self.draw(image_path, name)
+        self.draw(image_path, name, birth_date)

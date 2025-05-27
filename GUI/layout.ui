@@ -65,6 +65,11 @@
               <string>Scene</string>
              </property>
             </column>
+            <column>
+             <property name="text">
+              <string>Birth date</string>
+             </property>
+            </column>
            </widget>
           </item>
           <item>

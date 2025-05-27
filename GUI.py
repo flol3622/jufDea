@@ -1,8 +1,7 @@
 import json
 import os
 import sys
-
-import pymupdf
+import fitz  # PyMuPDF
 from pdf_utils import addAttachments, MyPDF
 from PyQt6 import QtWidgets, uic
 from PyQt6.QtGui import QImage, QPixmap
@@ -16,21 +15,12 @@ from PyQt6.QtWidgets import (
 )
 
 from Settings import JsonModel
-from pprint import pprint
 
 
 # get the base directory of the file, important for the packaging,
 #  so that the program can find files in its package,
 #  such as the layout.ui file
 base_dir = os.path.dirname(os.path.abspath(__file__))
-
-
-class NameLineEdit(QLineEdit):
-    def focusInEvent(self, event):
-        super().focusInEvent(
-            event
-        )  # Call the base class method to ensure normal focus behavior
-        print("This QLineEdit has received focus!")  # Replace with your custom action
 
 
 class Ui(QtWidgets.QMainWindow):
@@ -59,7 +49,6 @@ class Ui(QtWidgets.QMainWindow):
             potloden_map[(scene, color)] = os.path.join(
                 self.backgroundImageFolder, f_name
             )
-        pprint(potloden_map)
         return list(sorted(scenes)), list(sorted(colors)), potloden_map
 
     def newRow(self):
@@ -86,22 +75,27 @@ class Ui(QtWidgets.QMainWindow):
         scene.addItems(self._scenes)
         self.tableWidget.setCellWidget(rowPosition, 2, scene)
         scene.currentIndexChanged.connect(self.update_pdf_props)
+        # Add Birth date column (QLineEdit)
+        birth_date = FLineEdit("1-1-2000")
+        self.tableWidget.setCellWidget(rowPosition, 3, birth_date)
+        birth_date.textChanged.connect(self.update_pdf_props)
 
     def update_pdf_props(self):
         row = self.tableWidget.currentRow()
         name = self.tableWidget.cellWidget(row, 0).text()
         color = self.tableWidget.cellWidget(row, 1).currentText()
         scene = self.tableWidget.cellWidget(row, 2).currentText()
+        birth_date = self.tableWidget.cellWidget(row, 3).text()
         image_path = self._potloden_map[(scene, color)]
         self.pdf = MyPDF(unit="mm", format="A4")
-        self.pdf.new_page(image_path, name)
+        self.pdf.new_page(image_path, name, birth_date)
         self.update_pdf_view()
 
     def update_pdf_view(self):
         # Obtain PDF bytes as a string then encode to bytes
         pdf_bytes = self.pdf.output(dest="S").encode("latin1")
-        # Open the PDF from bytes using pymupdf
-        doc = pymupdf.open("pdf", pdf_bytes)
+        # Open the PDF from bytes using PyMuPDF
+        doc = fitz.open("pdf", pdf_bytes)
         page = doc.load_page(0)  # Load the first page
         pix = page.get_pixmap()
         img = QImage(
@@ -115,10 +109,11 @@ class Ui(QtWidgets.QMainWindow):
             name = self.tableWidget.cellWidget(row, 0).text()
             color = self.tableWidget.cellWidget(row, 1).currentText()
             scene = self.tableWidget.cellWidget(row, 2).currentText()
+            birth_date = self.tableWidget.cellWidget(row, 3).text()
             image_path = self._potloden_map[(scene, color)]
             if row == 0:
                 self.pdf = MyPDF(unit="mm", format="A4")
-            self.pdf.new_page(image_path, name)
+            self.pdf.new_page(image_path, name, birth_date)
         outPath, _ = QFileDialog.getSaveFileName(
             self, "Save PDF", "", "PDF Files (*.pdf)"
         )
@@ -138,7 +133,8 @@ class Ui(QtWidgets.QMainWindow):
             name = self.tableWidget.cellWidget(row, 0).text()
             color = self.tableWidget.cellWidget(row, 1).currentText()
             scene = self.tableWidget.cellWidget(row, 2).currentText()
-            table_data.append([name, scene, color])
+            birth_date = self.tableWidget.cellWidget(row, 3).text()
+            table_data.append([name, scene, color, birth_date])
         table_dataBytes = json.dumps(table_data, indent=4).encode()
         json_dataBytes = json.dumps(json_data, indent=4).encode()
         addAttachments(pdf_path, json_dataBytes, self.backgroundImage, table_dataBytes)
