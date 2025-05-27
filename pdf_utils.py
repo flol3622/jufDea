@@ -1,6 +1,8 @@
 import json
 import pikepdf
 from fpdf import FPDF
+import pandas as pd
+import io
 
 
 def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
@@ -17,130 +19,6 @@ def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
 
 
 class MyPDF(FPDF):
-    def draw(self, image_path, name, birth_date):
-        with open("layout.json", "r") as file:
-            layout = json.load(file)
-
-        font_name = "SchoolKX_new_SB"
-        self.add_font(
-            font_name, fname=r"GUI/assets/SchoolKX_new_SemiBold.ttf", uni=True
-        )
-
-        for layout_type, details in layout.get("Types", {}).items():
-            pos = details.get("Size & positions", {})
-            width = pos.get("width (mm)")
-            height = pos.get("height (mm)")
-            portrait = pos.get("portrait", False)
-            tops = pos.get("top (mm)", [])
-            lefts = pos.get("left (mm)", [])
-            margin = int(details.get("Background", {}).get("margin (mm)"))
-            top_offset = int(details.get("Background", {}).get("top offset (mm)", 0))
-            base_font_size = int(details.get("Text", {}).get("font-size"))
-            text_margin = int(details.get("Text", {}).get("margin (mm)"))
-            text_bottom_offset = int(
-                details.get("Text", {}).get("margin-bottom (mm)", 0)
-            )
-
-            for top, left in zip(tops, lefts):
-                x, y = left, top
-                self.rect(x, y, width, height, style="D")
-                size_img = (
-                    (height - 2 * margin) if not portrait else (width - 2 * margin)
-                )
-                font_box = base_font_size * 0.352778 * 1.3
-
-                if layout_type == "Fest":
-                    txtX = x + text_margin
-                    txtY = y + text_margin
-                    txtW = width - 2 * text_margin
-                    imgX = x + margin
-                    imgY = (
-                        y + font_box + 2 * text_margin + top_offset - text_bottom_offset
-                    )
-                    bottom_txtX = txtX
-                    bottom_txtY = imgY + size_img + text_margin
-                    bottom_txtW = txtW
-                elif portrait:
-                    txtX = x + text_margin
-                    txtY = y + height - font_box - text_margin - text_bottom_offset
-                    txtW = width - 2 * text_margin
-                    imgX = x + margin
-                    imgY = y + margin + top_offset
-                else:
-                    txtX = x + size_img + margin + text_margin
-                    txtY = y + (height - font_box) / 2
-                    txtW = width - size_img - margin - 2 * text_margin
-                    imgX = x + margin
-                    imgY = y + margin + top_offset
-
-                display_name = f"{name}fest" if layout_type == "Fest" else name
-                current_font_size = base_font_size
-                self.set_font(font_name, size=current_font_size)
-
-                # Adjust font size if text is too wide
-                while (
-                    self.get_string_width(display_name) > txtW and current_font_size > 1
-                ):
-                    current_font_size -= 1
-                    self.set_font(font_name, size=current_font_size)
-
-                # Center the text horizontally within txtW
-                text_width = self.get_string_width(display_name)
-                text_x_offset = (txtW - text_width) / 2
-                self.set_xy(txtX + text_x_offset, txtY)
-
-                # Split the text to apply green color to the first letter
-                first_letter = display_name[0] if display_name else ""
-                remaining_text = display_name[1:] if len(display_name) > 1 else ""
-
-                self.set_text_color(0, 128, 0)  # Green for first letter
-                self.cell(
-                    self.get_string_width(first_letter),
-                    font_box,
-                    first_letter,
-                    border=0,
-                    align="C",
-                    ln=0,
-                )
-                self.set_text_color(0, 0, 0)  # Black for the rest
-                self.cell(
-                    self.get_string_width(remaining_text),
-                    font_box,
-                    remaining_text,
-                    border=0,
-                    align="C",
-                )
-
-                self.image(image_path, imgX, imgY, w=0, h=size_img)
-
-                if layout_type == "Fest":
-                    self.set_font(font_name, size=current_font_size)
-                    self.set_text_color(0, 0, 0)
-                    bottom_text_x_offset = (
-                        bottom_txtW - self.get_string_width(birth_date)
-                    ) / 2
-                    self.set_xy(bottom_txtX + bottom_text_x_offset, bottom_txtY)
-                    self.cell(
-                        self.get_string_width(birth_date),
-                        font_box,
-                        birth_date,
-                        border=0,
-                        align="C",
-                    )
-
-    def new_page(self, image_path, name, birth_date):
-        self.add_page(orientation="L")
-        self.draw(image_path, name, birth_date)
-
-
-class GroupTablePDF(FPDF):
-    DEFAULT_CELL_WIDTH = 90
-    DEFAULT_CELL_HEIGHT = 14
-    DEFAULT_MARGIN = 0.5
-    X_START = 10
-    Y_START = 10
-    
-
     def __init__(self):
         super().__init__()
         self.add_font(
@@ -148,84 +26,179 @@ class GroupTablePDF(FPDF):
         )
         self.set_font("SchoolKX_new_SB", size=14)
 
-    def add_group_table_page(self, data):
+    def add_person(self, row):
+        self.add_page(orientation="L")
+        add_person_page(self, row)
+
+    def save_output(self, df, output_path):
+        for _, row in df.iterrows():
+            self.add_person(row)
+
+        # Add group table page as last page using the function
         self.add_page(orientation="P")
+        add_group_table_page(self, df)
+        self.output(output_path, "F")
 
-        # Split data into two groups and sort by birth_date (oldest first)
-        def parse_date(d):
-            parts = d.get("birth_date", "00-00-0000").strip().split("-")
-            return int(parts[2]), int(parts[1]), int(parts[0])
 
-        group1 = sorted([d for d in data if d.get("group") == 1], key=parse_date)
-        group2 = sorted([d for d in data if d.get("group") == 2], key=parse_date)
+def add_person_page(pdf, row):
+    with open("layout.json", "r") as file:
+        layout = json.load(file)
 
-        # Define starting x positions for left and right columns
-        left_column_x = self.X_START
-        right_column_x = self.X_START + self.DEFAULT_CELL_WIDTH
+    font_name = "SchoolKX_new_SB"
+    pdf.add_font(font_name, fname=r"GUI/assets/SchoolKX_new_SemiBold.ttf", uni=True)
 
-        self._draw_group(left_column_x, self.Y_START, group1)
-        self._draw_group(right_column_x, self.Y_START, group2)
+    name = row["name"]
+    birth_date = row["birth_date"]
+    image_path = row["image_path"]
 
-    def _draw_group(self, x, y_start, items):
-        y = y_start
-        for item in items:
-            try:
-                self._draw_group_cell(
-                    x, y, self.DEFAULT_CELL_WIDTH, self.DEFAULT_CELL_HEIGHT, item
+    for layout_type, details in layout.get("Types", {}).items():
+        pos = details.get("Size & positions", {})
+        width = pos.get("width (mm)")
+        height = pos.get("height (mm)")
+        portrait = pos.get("portrait", False)
+        tops = pos.get("top (mm)", [])
+        lefts = pos.get("left (mm)", [])
+        margin = int(details.get("Background", {}).get("margin (mm)"))
+        top_offset = int(details.get("Background", {}).get("top offset (mm)", 0))
+        base_font_size = int(details.get("Text", {}).get("font-size"))
+        text_margin = int(details.get("Text", {}).get("margin (mm)"))
+        text_bottom_offset = int(details.get("Text", {}).get("margin-bottom (mm)", 0))
+
+        for top, left in zip(tops, lefts):
+            x, y = left, top
+            pdf.rect(x, y, width, height, style="D")
+            size_img = (height - 2 * margin) if not portrait else (width - 2 * margin)
+            font_box = base_font_size * 0.352778 * 1.3
+
+            if layout_type == "Fest":
+                txtX = x + text_margin
+                txtY = y + text_margin
+                txtW = width - 2 * text_margin
+                imgX = x + margin
+                imgY = y + font_box + 2 * text_margin + top_offset - text_bottom_offset
+                bottom_txtX = txtX
+                bottom_txtY = imgY + size_img + text_margin
+                bottom_txtW = txtW
+            elif portrait:
+                txtX = x + text_margin
+                txtY = y + height - font_box - text_margin - text_bottom_offset
+                txtW = width - 2 * text_margin
+                imgX = x + margin
+                imgY = y + margin + top_offset
+            else:
+                txtX = x + size_img + margin + text_margin
+                txtY = y + (height - font_box) / 2
+                txtW = width - size_img - margin - 2 * text_margin
+                imgX = x + margin
+                imgY = y + margin + top_offset
+
+            display_name = f"{name}fest" if layout_type == "Fest" else name
+            current_font_size = base_font_size
+            pdf.set_font(font_name, size=current_font_size)
+
+            # Adjust font size if text is too wide
+            while pdf.get_string_width(display_name) > txtW and current_font_size > 1:
+                current_font_size -= 1
+                pdf.set_font(font_name, size=current_font_size)
+
+            # Center the text horizontally within txtW
+            text_width = pdf.get_string_width(display_name)
+            text_x_offset = (txtW - text_width) / 2
+            pdf.set_xy(txtX + text_x_offset, txtY)
+
+            # Split the text to apply green color to the first letter
+            first_letter = display_name[0] if display_name else ""
+            remaining_text = display_name[1:] if len(display_name) > 1 else ""
+
+            pdf.set_text_color(0, 128, 0)  # Green for first letter
+            pdf.cell(
+                pdf.get_string_width(first_letter),
+                font_box,
+                first_letter,
+                border=0,
+                align="C",
+                ln=0,
+            )
+            pdf.set_text_color(0, 0, 0)  # Black for the rest
+            pdf.cell(
+                pdf.get_string_width(remaining_text),
+                font_box,
+                remaining_text,
+                border=0,
+                align="C",
+            )
+
+            pdf.image(image_path, imgX, imgY, w=0, h=size_img)
+
+            if layout_type == "Fest":
+                pdf.set_font(font_name, size=current_font_size)
+                pdf.set_text_color(0, 0, 0)
+                bottom_text_x_offset = (
+                    bottom_txtW - pdf.get_string_width(birth_date)
+                ) / 2
+                pdf.set_xy(bottom_txtX + bottom_text_x_offset, bottom_txtY)
+                pdf.cell(
+                    pdf.get_string_width(birth_date),
+                    font_box,
+                    birth_date,
+                    border=0,
+                    align="C",
                 )
-            except Exception as e:
-                print(f"Error drawing cell for item {item}: {e}")
-            y += self.DEFAULT_CELL_HEIGHT
 
-    def _draw_group_cell(self, x, y, width, height, item):
-        name = item.get("name", "").strip()
-        family_name = item.get("family_name", "").strip()
-        image_path = item.get("image_path", "")
 
-        # Draw cell border
-        self.rect(x, y, width, height)
+def add_group_table_page(pdf, df):
+    X_START = 10
+    Y_START = 10
+    CELL_WIDTH = 90
+    CELL_HEIGHT = 12
+    MARGIN = 0.5
 
-        # Calculate image dimensions and positioning
-        img_size = height - 2 * self.DEFAULT_MARGIN
-        img_x = x + self.DEFAULT_MARGIN
-        img_y = y + self.DEFAULT_MARGIN
+    def parse_date(d):
+        parts = str(d).strip().split("-")
+        return int(parts[2]), int(parts[1]), int(parts[0])
 
-        # Draw the image if available
-        self.image(image_path, img_x, img_y, img_size, img_size)
+    group1 = df[df["group"] == 1].sort_values(
+        by="birth_date", key=lambda x: x.map(parse_date)
+    )
+    group2 = df[df["group"] == 2].sort_values(
+        by="birth_date", key=lambda x: x.map(parse_date)
+    )
 
-        # vertical line to separate image and text
-        self.line(
-            img_x + img_size, y + self.DEFAULT_MARGIN, img_x + img_size, y + height - self.DEFAULT_MARGIN
-        )
+    def draw_group(x, y_start, items):
+        y = y_start
+        for _, item in items.iterrows():
+            name = item.get("name", "").strip()
+            family_name = (
+                item.get("family_name", "").strip() if "family_name" in item else ""
+            )
+            image_path = item.get("image_path", "")
+            pdf.rect(x, y, CELL_WIDTH, CELL_HEIGHT)
+            img_size = CELL_HEIGHT - 2 * MARGIN
+            img_x = x + MARGIN
+            img_y = y + MARGIN
+            if image_path:
+                pdf.image(image_path, img_x, img_y, img_size, img_size)
+            pdf.line(
+                img_x + img_size,
+                y + MARGIN,
+                img_x + img_size,
+                y + CELL_HEIGHT - MARGIN,
+            )
+            text = f"{name} {family_name}".strip()
+            text_x = img_x + img_size + MARGIN
+            text_y = y + MARGIN
+            text_width = CELL_WIDTH - img_size - 2 * MARGIN
+            pdf.set_xy(text_x, text_y)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font("SchoolKX_new_SB", size=14)
+            pdf.cell(text_width, CELL_HEIGHT - 2 * MARGIN, text, border=0, align="L")
+            y += CELL_HEIGHT
 
-        # Determine text area on the right side of the image
-        text = f"{name} {family_name}".strip()
-        text_x = img_x + img_size + self.DEFAULT_MARGIN
-        text_y = y + self.DEFAULT_MARGIN
-        text_width = width - img_size - 2 * self.DEFAULT_MARGIN
-
-        self.set_xy(text_x, text_y)
-        self.set_text_color(0, 0, 0)
-        self.cell(
-            text_width, height - 2 * self.DEFAULT_MARGIN, text, border=0, align="L"
-        )
+    draw_group(X_START, Y_START, group1)
+    draw_group(X_START + CELL_WIDTH, Y_START, group2)
 
 
 if __name__ == "__main__":
-    # Simple test script for MyPDF
-    import os
-
-    test_pdf = MyPDF()
-    test_imageA = os.path.join("GUI", "images", "potloden", "blij-blauw.jpg")
-    test_imageB = os.path.join("GUI", "images", "potloden", "bril-rood.jpg")
-    test_name = "Test Name"
-    test_birth = "01-01-2000"
-    test_pdf.new_page(test_imageA, "philippe", "25-08-1999")
-    test_pdf.new_page(test_imageB, "hanne", "lalalala")
-    test_pdf.output("output.pdf")
-    print("Test PDF generated as output.pdf")
-
-    # Example usage of GroupTablePDF
     group_data = [
         {
             "name": "Renzo",
@@ -237,7 +210,7 @@ if __name__ == "__main__":
         {
             "name": "Furkan",
             "family_name": "Tat",
-            "image_path": "GUI/images/potloden/blij-groen.jpg",
+            "image_path": "GUI/images/potloden/bril-groen.jpg",
             "group": 2,
             "birth_date": "12-03-2012",
         },
@@ -251,14 +224,14 @@ if __name__ == "__main__":
         {
             "name": "Saar",
             "family_name": "Ebbeling",
-            "image_path": "GUI/images/potloden/blij-roze.jpg",
+            "image_path": "GUI/images/potloden/cool-roze.jpg",
             "group": 2,
             "birth_date": "18-02-2015",
         },
         {
             "name": "Aras",
             "family_name": "Yazici",
-            "image_path": "GUI/images/potloden/blij-oranje.jpg",
+            "image_path": "GUI/images/potloden/rugzak-oranje.jpg",
             "group": 1,
             "birth_date": "30-05-2013",
         },
@@ -272,7 +245,7 @@ if __name__ == "__main__":
         {
             "name": "Zyan",
             "family_name": "Booi",
-            "image_path": "GUI/images/potloden/blij-rood.jpg",
+            "image_path": "GUI/images/potloden/zwaai-rood.jpg",
             "group": 1,
             "birth_date": "21-12-2013",
         },
@@ -283,9 +256,11 @@ if __name__ == "__main__":
             "group": 2,
             "birth_date": "03-04-2015",
         },
-        # Add more as needed...
     ]
-    group_table_pdf = GroupTablePDF()
-    group_table_pdf.add_group_table_page(group_data)
-    group_table_pdf.output("group_table_output.pdf")
-    print("Group Table PDF generated as group_table_output.pdf")
+    df = pd.DataFrame(group_data)
+    pdf = MyPDF()
+    pdf.save_output(df, "full_output.pdf")
+
+    single_person_pdf = MyPDF()
+    single_person_pdf.add_person(df.iloc[0])
+    single_person_pdf.output("single_output.pdf", "F")
