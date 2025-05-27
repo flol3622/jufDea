@@ -2,7 +2,6 @@ import json
 import pikepdf
 from fpdf import FPDF
 import pandas as pd
-import io
 
 
 def addAttachments(pdf_path, jsonBytes, image_path, tableBytes):
