@@ -62,8 +62,6 @@ class Ui(QtWidgets.QMainWindow):
                 super().focusInEvent(event)
                 self.update_pdf_props()
 
-        from PyQt6.QtGui import QIntValidator
-
         rowPosition = self.tableWidget.rowCount()
         self.tableWidget.insertRow(rowPosition)
         name = FLineEdit("name")
@@ -133,7 +131,9 @@ class Ui(QtWidgets.QMainWindow):
             group = self.tableWidget.cellWidget(row, 4).currentText()
             image_path = self._potloden_map[(scene, color)]
             if group and group in ["1", "2"]:
-                self.pdf.add_special_page(image_path, name, birth_date, special_text=group)
+                self.pdf.add_special_page(
+                    image_path, name, birth_date, special_text=group
+                )
         outPath, _ = QFileDialog.getSaveFileName(
             self, "Save PDF", "", "PDF Files (*.pdf)"
         )

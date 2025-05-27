@@ -135,10 +135,11 @@ class MyPDF(FPDF):
 
 class GroupTablePDF(FPDF):
     DEFAULT_CELL_WIDTH = 90
-    DEFAULT_CELL_HEIGHT = 15
-    DEFAULT_MARGIN = 2
+    DEFAULT_CELL_HEIGHT = 14
+    DEFAULT_MARGIN = 0.5
     X_START = 10
-    Y_START = 20
+    Y_START = 10
+    
 
     def __init__(self):
         super().__init__()
@@ -150,13 +151,17 @@ class GroupTablePDF(FPDF):
     def add_group_table_page(self, data):
         self.add_page(orientation="P")
 
-        # Split data into two groups
-        group1 = [d for d in data if d.get("group") == 1]
-        group2 = [d for d in data if d.get("group") == 2]
+        # Split data into two groups and sort by birth_date (oldest first)
+        def parse_date(d):
+            parts = d.get("birth_date", "00-00-0000").strip().split("-")
+            return int(parts[2]), int(parts[1]), int(parts[0])
+
+        group1 = sorted([d for d in data if d.get("group") == 1], key=parse_date)
+        group2 = sorted([d for d in data if d.get("group") == 2], key=parse_date)
 
         # Define starting x positions for left and right columns
         left_column_x = self.X_START
-        right_column_x = self.X_START + self.DEFAULT_CELL_WIDTH + self.DEFAULT_MARGIN
+        right_column_x = self.X_START + self.DEFAULT_CELL_WIDTH
 
         self._draw_group(left_column_x, self.Y_START, group1)
         self._draw_group(right_column_x, self.Y_START, group2)
@@ -164,13 +169,17 @@ class GroupTablePDF(FPDF):
     def _draw_group(self, x, y_start, items):
         y = y_start
         for item in items:
-            self._draw_group_cell(
-                x, y, self.DEFAULT_CELL_WIDTH, self.DEFAULT_CELL_HEIGHT, item
-            )
+            try:
+                self._draw_group_cell(
+                    x, y, self.DEFAULT_CELL_WIDTH, self.DEFAULT_CELL_HEIGHT, item
+                )
+            except Exception as e:
+                print(f"Error drawing cell for item {item}: {e}")
             y += self.DEFAULT_CELL_HEIGHT
 
     def _draw_group_cell(self, x, y, width, height, item):
-        name = item.get("name", "")
+        name = item.get("name", "").strip()
+        family_name = item.get("family_name", "").strip()
         image_path = item.get("image_path", "")
 
         # Draw cell border
@@ -182,13 +191,15 @@ class GroupTablePDF(FPDF):
         img_y = y + self.DEFAULT_MARGIN
 
         # Draw the image if available
-        if image_path:
-            try:
-                self.image(image_path, img_x, img_y, img_size, img_size)
-            except Exception:
-                pass
+        self.image(image_path, img_x, img_y, img_size, img_size)
+
+        # vertical line to separate image and text
+        self.line(
+            img_x + img_size, y + self.DEFAULT_MARGIN, img_x + img_size, y + height - self.DEFAULT_MARGIN
+        )
 
         # Determine text area on the right side of the image
+        text = f"{name} {family_name}".strip()
         text_x = img_x + img_size + self.DEFAULT_MARGIN
         text_y = y + self.DEFAULT_MARGIN
         text_width = width - img_size - 2 * self.DEFAULT_MARGIN
@@ -196,7 +207,7 @@ class GroupTablePDF(FPDF):
         self.set_xy(text_x, text_y)
         self.set_text_color(0, 0, 0)
         self.cell(
-            text_width, height - 2 * self.DEFAULT_MARGIN, name, border=0, align="L"
+            text_width, height - 2 * self.DEFAULT_MARGIN, text, border=0, align="L"
         )
 
 
@@ -221,21 +232,21 @@ if __name__ == "__main__":
             "family_name": "Verkroost",
             "image_path": "GUI/images/potloden/blij-blauw.jpg",
             "group": 1,
-            "birth_date": "12-03-2014",
+            "birth_date": "12-03-2012",
         },
         {
             "name": "Furkan",
             "family_name": "Tat",
             "image_path": "GUI/images/potloden/blij-groen.jpg",
             "group": 2,
-            "birth_date": "25-07-2013",
+            "birth_date": "12-03-2012",
         },
         {
             "name": "Shona",
             "family_name": "Ten Napel",
             "image_path": "GUI/images/potloden/blij-geel.jpg",
             "group": 1,
-            "birth_date": "09-11-2014",
+            "birth_date": "12-02-2012",
         },
         {
             "name": "Saar",
