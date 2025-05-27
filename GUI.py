@@ -1,11 +1,12 @@
+# Standard library imports
 import os
 import sys
 import json
+
+# Third-party imports
 import fitz  # PyMuPDF
 import pandas as pd
-from pdf_utils import MyPDF, add_group_table_page
-from Settings import JsonModel
-from PyQt6 import QtWidgets, QtGui
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -21,22 +22,30 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QFileDialog,
     QTreeView,
+    QMessageBox,
 )
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 
+# Internal imports
+from pdf_utils import MyPDF
+from Settings import JsonModel
+
 
 class MainWindow(QMainWindow):
+    """Main window for the PDF Generator application."""
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PDF Generator")
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self._load_potloden_images()
         self.initUI()
-        self.newRow()  # add an initial row
+        self.newRow()
 
     def _load_potloden_images(self):
-        # Load images from the folder "GUI/images/potloden"
+        """Load images from the folder 'GUI/images/potloden'."""
         self.backgroundImageFolder = os.path.join(
             self.base_dir, "GUI", "images", "potloden"
         )
@@ -69,6 +78,7 @@ class MainWindow(QMainWindow):
             }
 
     def initUI(self):
+        """Initialize the user interface components."""
         central = QWidget()
         self.setCentralWidget(central)
         mainLayout = QHBoxLayout(central)
@@ -120,40 +130,45 @@ class MainWindow(QMainWindow):
         self.removeRowButton.clicked.connect(self.removeRow)
         self.savePDFButton.clicked.connect(self.save_pdf)
         self.tableWidget.cellChanged.connect(self.update_preview)
-        self.tableWidget.cellClicked.connect(self.update_preview)  # added connection for clicking a row
+        self.tableWidget.cellClicked.connect(
+            self.update_preview
+        )  # update preview when clicking a row
 
     def newRow(self):
+        """Insert a new row with default values and setup event filters."""
         rowPosition = self.tableWidget.rowCount()
         self.tableWidget.insertRow(rowPosition)
 
         # Name column
         nameEdit = QLineEdit("name")
         nameEdit.textChanged.connect(self.update_preview)
+        nameEdit.installEventFilter(self)
         self.tableWidget.setCellWidget(rowPosition, 0, nameEdit)
 
         # Family Name column
         familyEdit = QLineEdit("family")
         familyEdit.textChanged.connect(self.update_preview)
+        familyEdit.installEventFilter(self)
         self.tableWidget.setCellWidget(rowPosition, 1, familyEdit)
 
-        # Color column (now column index 2)
+        # Color column
         colorCombo = QComboBox()
         colorCombo.addItems(self._colors)
         colorCombo.currentIndexChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 2, colorCombo)
 
-        # Scene column (now column index 3)
+        # Scene column
         sceneCombo = QComboBox()
         sceneCombo.addItems(self._scenes)
         sceneCombo.currentIndexChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 3, sceneCombo)
 
-        # Birth date column (now column index 4)
+        # Birth date column
         birthEdit = QLineEdit("1-1-2000")
         birthEdit.textChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 4, birthEdit)
 
-        # Group column (now column index 5)
+        # Group column
         groupCombo = QComboBox()
         groupCombo.addItems(["1", "2"])
         groupCombo.setCurrentIndex(0)
@@ -161,16 +176,19 @@ class MainWindow(QMainWindow):
         self.tableWidget.setCellWidget(rowPosition, 5, groupCombo)
 
     def addRow(self):
+        """Add a new row and update the preview."""
         self.newRow()
         self.update_preview()
 
     def removeRow(self):
+        """Remove the last row if there is more than one row."""
         count = self.tableWidget.rowCount()
         if count > 1:
             self.tableWidget.removeRow(count - 1)
             self.update_preview()
 
     def get_table_df(self):
+        """Convert the table data to a pandas DataFrame."""
         rows = []
         for row in range(self.tableWidget.rowCount()):
             name = self.tableWidget.cellWidget(row, 0).text()
@@ -194,11 +212,12 @@ class MainWindow(QMainWindow):
         return pd.DataFrame(rows)
 
     def update_preview(self):
+        """Update the preview image using the selected row; fallback to first row if none selected."""
         df = self.get_table_df()
         if df.empty:
             return
         row_idx = self.tableWidget.currentRow()
-        if row_idx < 0 or row_idx >= len(df):
+        if not 0 <= row_idx < len(df):
             row_data = df.iloc[0]
         else:
             row_data = df.iloc[row_idx]
@@ -220,22 +239,24 @@ class MainWindow(QMainWindow):
         doc.close()
 
     def save_pdf(self):
+        """Save the current table data as a PDF file."""
         df = self.get_table_df()
         if df.empty:
+            QMessageBox.critical(self, "Error", "No data available to save.")
             return
-        pdf = MyPDF()
-        for _, row in df.iterrows():
-            pdf.add_person(row)
-        # Add final group table page
-        pdf.add_page()
-        add_group_table_page(pdf, df)
-        outPath, _ = QFileDialog.getSaveFileName(
-            self, "Save PDF", "", "PDF Files (*.pdf)"
-        )
-        if outPath:
-            pdf.output(outPath, "F")
+        try:
+            out_pdf = MyPDF()
+            outPath, _ = QFileDialog.getSaveFileName(
+                self, "Save PDF", "", "PDF Files (*.pdf)"
+            )
+            if outPath:
+                out_pdf.save_output(df, outPath)
+                QMessageBox.information(self, "Success", "PDF successfully saved!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error saving PDF: {e}")
 
     def openSettings(self):
+        """Open and display JSON layout settings."""
         json_path = os.path.join(self.base_dir, "layout.json")
         with open(json_path, "r") as file:
             document = json.load(file)
@@ -247,6 +268,14 @@ class MainWindow(QMainWindow):
         self.tree_view.setAlternatingRowColors(True)
         self.tree_view.resize(500, 300)
         self.tree_view.show()
+
+    def eventFilter(self, source, event):
+        """Watch for focus events on QLineEdit to update preview."""
+        from PyQt6.QtCore import QEvent
+        if event.type() == QEvent.Type.FocusIn:
+            # Trigger update_preview when QLineEdit gains focus
+            self.update_preview()
+        return super().eventFilter(source, event)
 
 
 if __name__ == "__main__":
