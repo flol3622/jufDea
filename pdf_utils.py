@@ -83,18 +83,20 @@ class MyPDF(FPDF):
                         imgX = x + margin
                         imgY = y + margin + top_offset
 
+                    # Write the text
                     self.set_font("SchoolKX_new_SB", size=font_size)
+                    p_name = name + "fest" if type == "Fest" else name 
 
                     # Reduce font size if text is too wide
-                    while self.get_string_width(name) > txtW and font_size > 1:
+                    while self.get_string_width(p_name) > txtW and font_size > 1:
                         font_size -= 1  # Decrease font size by 1
                         self.set_font("SchoolKX_new_SB", size=font_size)
 
                     # Center the text
-                    first_letter = name[0] if name else ""
-                    remaining_text = name[1:] if len(name) > 1 else ""
+                    first_letter = p_name[0] if p_name else ""
+                    remaining_text = p_name[1:] if len(p_name) > 1 else ""
 
-                    self.set_xy(txtX + (txtW - self.get_string_width(name)) / 2, txtY)
+                    self.set_xy(txtX + (txtW - self.get_string_width(p_name)) / 2, txtY)
 
                     self.set_text_color(0, 128, 0)  # RGB for green
                     self.cell(
