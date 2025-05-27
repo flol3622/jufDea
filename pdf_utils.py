@@ -24,7 +24,7 @@ class MyPDF(FPDF):
 
             self.add_font(
                 "SchoolKX_new_SB",
-                fname=r"GUI\\assets\\SchoolKX_new_SemiBold.ttf",
+                fname=r"GUI/assets/SchoolKX_new_SemiBold.ttf",
                 uni=True,
             )
 
@@ -142,3 +142,31 @@ class MyPDF(FPDF):
     def new_page(self, image_path, name, birth_date):
         self.add_page(orientation="L")
         self.draw(image_path, name, birth_date)
+
+    def add_special_page(self, image_path, name, birth_date, special_text=None):
+        """
+        Adds a special page at the end of the PDF with optional special text.
+        """
+        self.add_page(orientation="L")
+        self.draw(image_path, name, birth_date)
+        if special_text:
+            self.set_font("SchoolKX_new_SB", size=24)
+            self.set_text_color(255, 0, 0)  # Red for special
+            self.set_xy(10, 10)
+            self.cell(0, 20, special_text, align="C")
+
+
+if __name__ == "__main__":
+    # Simple test script for MyPDF
+    import os
+    test_pdf = MyPDF()
+    test_imageA = os.path.join("GUI", "images", "potloden", "blij-blauw.jpg")
+    test_imageB = os.path.join("GUI", "images", "potloden", "bril-rood.jpg")
+    test_name = "Test Name"
+    test_birth = "01-01-2000"
+    test_pdf.new_page(test_imageA, "philippe", "25-08-1999")
+    test_pdf.new_page(test_imageB, "hanne", "lalalala")
+
+    test_pdf.add_special_page(test_imageA, test_name, test_birth, special_text="SPECIAL PAGE!")
+    test_pdf.output("output.pdf")
+    print("Test PDF generated as output.pdf")
