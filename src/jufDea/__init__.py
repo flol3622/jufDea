@@ -29,8 +29,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 
 # Internal imports
-from pdf_utils import MyPDF
-from Settings import JsonModel
+from jufDea.pdf_utils import MyPDF
+from jufDea.Settings import JsonModel
 
 
 class MainWindow(QMainWindow):
@@ -278,8 +278,12 @@ class MainWindow(QMainWindow):
         return super().eventFilter(source, event)
 
 
-if __name__ == "__main__":
+def main():
+    """Main function to run the application."""
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

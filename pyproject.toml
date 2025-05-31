@@ -4,12 +4,20 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = [
-    "auto-py-to-exe",
-    "fpdf",
-    "frontend",
-    "pikepdf",
-    "pymupdf",
-    "pyqt6",
-    "pyqt6-tools>=6.4.2.3.3",
+authors = [
+    { name = "Philippe Soubrier", email = "philippe.soubrier@flupke.dev" }
 ]
+dependencies = [
+    "fpdf>=1.7.2",
+    "frontend>=0.0.3",
+    "pikepdf>=9.7.0",
+    "pymupdf>=1.25.5",
+    "pyqt6>=6.4.2",
+]
+
+[project.scripts]
+jufDea = "jufDea:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
