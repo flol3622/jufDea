@@ -103,10 +103,8 @@ class MainWindow(QMainWindow):
         btnLayout = QHBoxLayout()
         self.addRowButton = QPushButton("➕ Add Row")  # emoji before text
         self.removeRowButton = QPushButton("➖ Remove Row")  # emoji before text
-        self.clearButton = QPushButton("🧹 Clear")  # emoji before text
         btnLayout.addWidget(self.addRowButton)
         btnLayout.addWidget(self.removeRowButton)
-        btnLayout.addWidget(self.clearButton)  # Add Clear button to layout
         dataLayout.addLayout(btnLayout)
 
         self.savePDFButton = QPushButton("💾 Save PDF")  # emoji before text
