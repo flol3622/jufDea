@@ -2,6 +2,8 @@
 import os
 import sys
 import json
+import pikepdf
+import datetime
 
 # Third-party imports
 import fitz  # PyMuPDF
@@ -101,8 +103,10 @@ class MainWindow(QMainWindow):
         btnLayout = QHBoxLayout()
         self.addRowButton = QPushButton("Add Row")
         self.removeRowButton = QPushButton("Remove Row")
+        self.clearButton = QPushButton("Clear")  # Add Clear button
         btnLayout.addWidget(self.addRowButton)
         btnLayout.addWidget(self.removeRowButton)
+        btnLayout.addWidget(self.clearButton)  # Add Clear button to layout
         dataLayout.addLayout(btnLayout)
 
         self.savePDFButton = QPushButton("Save PDF")
@@ -124,10 +128,19 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         advancedMenu = menubar.addMenu("Advanced")
         advancedMenu.addAction(settingsAction)
+        openPdfAction = QAction("Open PDF", self)
+        openPdfAction.triggered.connect(self.open_pdf)
+        menubar.insertAction(advancedMenu.menuAction(), openPdfAction)
+
+        # Add Clear action next to Advanced
+        clearAction = QAction("Clear", self)
+        clearAction.triggered.connect(self.clear_table)
+        menubar.insertAction(advancedMenu.menuAction(), clearAction)
 
         # Connect signals
         self.addRowButton.clicked.connect(self.addRow)
         self.removeRowButton.clicked.connect(self.removeRow)
+        # self.clearButton.clicked.connect(self.clear_table)  # Remove button connection, now in menu
         self.savePDFButton.clicked.connect(self.save_pdf)
         self.tableWidget.cellChanged.connect(self.update_preview)
         self.tableWidget.cellClicked.connect(
@@ -187,8 +200,20 @@ class MainWindow(QMainWindow):
             self.tableWidget.removeRow(count - 1)
             self.update_preview()
 
-    def get_table_df(self):
-        """Convert the table data to a pandas DataFrame."""
+    def validate_birthdate(self, date_str):
+        """Validate birth date format: accepts DD-MM-YYYY or D-M-YYYY."""
+        try:
+            datetime.datetime.strptime(date_str, "%d-%m-%Y")
+            return True
+        except ValueError:
+            try:
+                datetime.datetime.strptime(date_str, "%d-%m-%Y")
+                return True
+            except Exception:
+                return False
+
+    def get_table_df(self, validate_birthdate=False):
+        """Convert the table data to a pandas DataFrame. If validate_birthdate is True, returns (df, invalid_row_idx) if invalid birthdate found."""
         rows = []
         for row in range(self.tableWidget.rowCount()):
             name = self.tableWidget.cellWidget(row, 0).text()
@@ -198,6 +223,9 @@ class MainWindow(QMainWindow):
             birth_date = self.tableWidget.cellWidget(row, 4).text()
             group = int(self.tableWidget.cellWidget(row, 5).currentText())
             image_path = self._potloden_map.get((scene, color), "")
+            # Validate birthdate only if requested
+            if validate_birthdate and not self.validate_birthdate(birth_date):
+                return None, row
             rows.append(
                 {
                     "name": name,
@@ -209,12 +237,15 @@ class MainWindow(QMainWindow):
                     "image_path": image_path,
                 }
             )
-        return pd.DataFrame(rows)
+        if validate_birthdate:
+            return pd.DataFrame(rows), None
+        else:
+            return pd.DataFrame(rows)
 
     def update_preview(self):
         """Update the preview image using the selected row; fallback to first row if none selected."""
-        df = self.get_table_df()
-        if df.empty:
+        df = self.get_table_df(validate_birthdate=False)
+        if df is None or df.empty:
             return
         row_idx = self.tableWidget.currentRow()
         if not 0 <= row_idx < len(df):
@@ -240,8 +271,11 @@ class MainWindow(QMainWindow):
 
     def save_pdf(self):
         """Save the current table data as a PDF file."""
-        df = self.get_table_df()
-        if df.empty:
+        df, invalid_row = self.get_table_df(validate_birthdate=True)
+        if invalid_row is not None:
+            QMessageBox.critical(self, "Error", f"Invalid birth date syntax in row {invalid_row+1}. Please use DD-MM-YYYY.")
+            return
+        if df is None or df.empty:
             QMessageBox.critical(self, "Error", "No data available to save.")
             return
         try:
@@ -254,6 +288,39 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, "Success", "PDF successfully saved!")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error saving PDF: {e}")
+
+    def open_pdf(self):
+        """Open a PDF and load its JSON attachment to populate the table."""
+        filePath, _ = QFileDialog.getOpenFileName(self, "Open PDF", "", "PDF Files (*.pdf)")
+        if filePath:
+            try:
+                pdf = pikepdf.open(filePath)
+                attachments = pdf.attachments
+                if "dataframe.json" in attachments:
+                    # Fix: use get_file().read_bytes() instead of read_bytes()
+                    data_bytes = attachments["dataframe.json"].get_file().read_bytes()
+                    records = json.loads(data_bytes.decode("utf-8"))
+                    self.tableWidget.setRowCount(0)
+                    for record in records:
+                        self.newRow()
+                        row_idx = self.tableWidget.rowCount() - 1
+                        self.tableWidget.cellWidget(row_idx, 0).setText(record.get("name", ""))
+                        self.tableWidget.cellWidget(row_idx, 1).setText(record.get("family_name", ""))
+                        idx = self.tableWidget.cellWidget(row_idx, 2).findText(record.get("color", ""))
+                        if idx >= 0:
+                            self.tableWidget.cellWidget(row_idx, 2).setCurrentIndex(idx)
+                        idx = self.tableWidget.cellWidget(row_idx, 3).findText(record.get("scene", ""))
+                        if idx >= 0:
+                            self.tableWidget.cellWidget(row_idx, 3).setCurrentIndex(idx)
+                        self.tableWidget.cellWidget(row_idx, 4).setText(record.get("birth_date", ""))
+                        idx = self.tableWidget.cellWidget(row_idx, 5).findText(str(record.get("group", "")))
+                        if idx >= 0:
+                            self.tableWidget.cellWidget(row_idx, 5).setCurrentIndex(idx)
+                    self.update_preview()
+                else:
+                    QMessageBox.critical(self, "Error", "No JSON attachment found in PDF.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error loading PDF: {e}")
 
     def openSettings(self):
         """Open and display JSON layout settings."""
@@ -276,6 +343,12 @@ class MainWindow(QMainWindow):
             # Trigger update_preview when QLineEdit gains focus
             self.update_preview()
         return super().eventFilter(source, event)
+
+    def clear_table(self):
+        """Clear the table and add one default row."""
+        self.tableWidget.setRowCount(0)
+        self.newRow()
+        self.update_preview()
 
 
 def main():
