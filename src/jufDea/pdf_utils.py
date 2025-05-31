@@ -47,7 +47,6 @@ class MyPDF(FPDF):
         self.output(output_path, "F")
         with pikepdf.open(output_path, allow_overwriting_input=True) as pdf:
             json_bytes = df.to_json(orient="records").encode("utf-8")
-            print(json_bytes)
             json_attachment = pikepdf.AttachedFileSpec(
                 pdf, json_bytes, mime_type="application/json"
             )

@@ -2,41 +2,35 @@
 chcp 65001>nul
 setlocal
 
-goto :main_menu
-
-:main_menu
-call :print_header "[1;36m   🚀 jufDeaSoftware Main Menu 🚀"
-
-call :color_echo "[1;33m   1. Run jufDeaSoftware"
-call :color_echo "[1;33m   2. Install/Update Required Software"
-echo.
-set /p "CHOICE=[1;37mEnter your choice (1-2): [0m"
-
-if "%CHOICE%"=="1" goto :run_script
-if "%CHOICE%"=="2" goto :install_software
-
-call :color_error "❌ Invalid choice. Please try again."
-pause
-goto :main_menu
-
-:install_software
-call :print_header "[1;36m   🛠️  Installing Required Software 🛠️"
-
-REM Step 1: Install or update uv
-call :color_echo "[1;34m[1/2] Installing / updating UV from Astral.sh..."
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-echo.
-
-REM Step 2: Install git
-call :color_echo "[1;34m[2/2] Installing / updating Git..."
-winget install --id Git.Git -e --source winget
-echo.
-goto :main_menu
-
-:run_script
 call :print_header "[1;36m   🚀 Running jufDeaSoftware 🚀"
+ 
+REM Check and install uv if not available
+where uvx >nul 2>&1
+if errorlevel 1 (
+    call :color_echo "[1;34mInstalling/updating UV from Astral.sh..."
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+) else (
+    call :color_echo "[1;32mUV is already installed, skipping..."
+)
+echo.
+ 
+REM Check and install git if not available
+where git >nul 2>&1
+if errorlevel 1 (
+    call :color_echo "[1;34mInstalling/updating Git..."
+    winget install --id Git.Git -e --source winget
+) else (
+    call :color_echo "[1;32mGit is already installed, skipping..."
+)
+echo.
+ 
 call :color_echo "[1;34mRunning jufDeaSoftware, installing dependencies if needed..."
 uvx --from git+https://github.com/flol3622/jufDea.git@uvx jufDea
+if errorlevel 1 (
+    call :color_error "uvx did not work. Please restart the script to use the new tools."
+    pause
+    exit /b
+)
 echo.
 
 REM --- Helper subroutines ---

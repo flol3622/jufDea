@@ -1,34 +1,34 @@
 # Standard library imports
+import datetime
+import json
 import os
 import sys
-import json
-import pikepdf
-import datetime
 
 # Third-party imports
 import fitz  # PyMuPDF
 import pandas as pd
+import pikepdf
 from PyQt6 import QtGui
+from PyQt6.QtCore import QDate, Qt
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTableWidget,
-    QLineEdit,
     QComboBox,
-    QPushButton,
-    QLabel,
-    QGroupBox,
-    QHeaderView,
+    QDateEdit,
     QFileDialog,
-    QTreeView,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
     QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
 )
-
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
 
 # Internal imports
 from jufDea.pdf_utils import MyPDF
@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PDF Generator")
+        self.setWindowTitle("🎉 PDF Generator")  # changed window title with emoji
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self._load_potloden_images()
         self.initUI()
@@ -101,39 +101,39 @@ class MainWindow(QMainWindow):
         dataLayout.addWidget(self.tableWidget)
 
         btnLayout = QHBoxLayout()
-        self.addRowButton = QPushButton("Add Row")
-        self.removeRowButton = QPushButton("Remove Row")
-        self.clearButton = QPushButton("Clear")  # Add Clear button
+        self.addRowButton = QPushButton("➕ Add Row")  # emoji before text
+        self.removeRowButton = QPushButton("➖ Remove Row")  # emoji before text
+        self.clearButton = QPushButton("🧹 Clear")  # emoji before text
         btnLayout.addWidget(self.addRowButton)
         btnLayout.addWidget(self.removeRowButton)
         btnLayout.addWidget(self.clearButton)  # Add Clear button to layout
         dataLayout.addLayout(btnLayout)
 
-        self.savePDFButton = QPushButton("Save PDF")
+        self.savePDFButton = QPushButton("💾 Save PDF")  # emoji before text
         dataLayout.addWidget(self.savePDFButton)
         mainLayout.addWidget(dataGroup)
 
         # Right side: Preview GroupBox
         previewGroup = QGroupBox("Preview")
         previewLayout = QVBoxLayout(previewGroup)
-        self.previewLabel = QLabel("PDF Preview")
+        self.previewLabel = QLabel("📄 PDF Preview")  # emoji before text
         self.previewLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.previewLabel.setFixedSize(842, 595)
         previewLayout.addWidget(self.previewLabel)
         mainLayout.addWidget(previewGroup)
 
         # Menu for Settings
-        settingsAction = QAction("Settings", self)
+        settingsAction = QAction("⚙️ Settings", self)  # emoji before text
         settingsAction.triggered.connect(self.openSettings)
         menubar = self.menuBar()
         advancedMenu = menubar.addMenu("Advanced")
         advancedMenu.addAction(settingsAction)
-        openPdfAction = QAction("Open PDF", self)
+        openPdfAction = QAction("📄 Open PDF", self)  # emoji before text
         openPdfAction.triggered.connect(self.open_pdf)
         menubar.insertAction(advancedMenu.menuAction(), openPdfAction)
 
         # Add Clear action next to Advanced
-        clearAction = QAction("Clear", self)
+        clearAction = QAction("🧹 Clear", self)  # emoji before text
         clearAction.triggered.connect(self.clear_table)
         menubar.insertAction(advancedMenu.menuAction(), clearAction)
 
@@ -176,9 +176,12 @@ class MainWindow(QMainWindow):
         sceneCombo.currentIndexChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 3, sceneCombo)
 
-        # Birth date column
-        birthEdit = QLineEdit("1-1-2000")
-        birthEdit.textChanged.connect(self.update_preview)
+        # Birth date column - use QDateEdit instead of QLineEdit
+        birthEdit = QDateEdit()
+        birthEdit.setDisplayFormat("dd-MM-yyyy")
+        birthEdit.setCalendarPopup(True)
+        birthEdit.setDate(datetime.date(2000, 1, 1))
+        birthEdit.dateChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 4, birthEdit)
 
         # Group column
@@ -202,15 +205,8 @@ class MainWindow(QMainWindow):
 
     def validate_birthdate(self, date_str):
         """Validate birth date format: accepts DD-MM-YYYY or D-M-YYYY."""
-        try:
-            datetime.datetime.strptime(date_str, "%d-%m-%Y")
-            return True
-        except ValueError:
-            try:
-                datetime.datetime.strptime(date_str, "%d-%m-%Y")
-                return True
-            except Exception:
-                return False
+        # No longer needed with QDateEdit, always valid
+        return True
 
     def get_table_df(self, validate_birthdate=False):
         """Convert the table data to a pandas DataFrame. If validate_birthdate is True, returns (df, invalid_row_idx) if invalid birthdate found."""
@@ -220,10 +216,12 @@ class MainWindow(QMainWindow):
             family_name = self.tableWidget.cellWidget(row, 1).text()
             color = self.tableWidget.cellWidget(row, 2).currentText()
             scene = self.tableWidget.cellWidget(row, 3).currentText()
-            birth_date = self.tableWidget.cellWidget(row, 4).text()
+            # Get date from QDateEdit and format as string
+            birth_date_widget = self.tableWidget.cellWidget(row, 4)
+            birth_date = birth_date_widget.date().toString("dd-MM-yyyy")
             group = int(self.tableWidget.cellWidget(row, 5).currentText())
             image_path = self._potloden_map.get((scene, color), "")
-            # Validate birthdate only if requested
+            # Validate birthdate only if requested (always valid now)
             if validate_birthdate and not self.validate_birthdate(birth_date):
                 return None, row
             rows.append(
@@ -273,7 +271,11 @@ class MainWindow(QMainWindow):
         """Save the current table data as a PDF file."""
         df, invalid_row = self.get_table_df(validate_birthdate=True)
         if invalid_row is not None:
-            QMessageBox.critical(self, "Error", f"Invalid birth date syntax in row {invalid_row+1}. Please use DD-MM-YYYY.")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Invalid birth date syntax in row {invalid_row + 1}. Please use DD-MM-YYYY.",
+            )
             return
         if df is None or df.empty:
             QMessageBox.critical(self, "Error", "No data available to save.")
@@ -291,7 +293,9 @@ class MainWindow(QMainWindow):
 
     def open_pdf(self):
         """Open a PDF and load its JSON attachment to populate the table."""
-        filePath, _ = QFileDialog.getOpenFileName(self, "Open PDF", "", "PDF Files (*.pdf)")
+        filePath, _ = QFileDialog.getOpenFileName(
+            self, "Open PDF", "", "PDF Files (*.pdf)"
+        )
         if filePath:
             try:
                 pdf = pikepdf.open(filePath)
@@ -304,21 +308,41 @@ class MainWindow(QMainWindow):
                     for record in records:
                         self.newRow()
                         row_idx = self.tableWidget.rowCount() - 1
-                        self.tableWidget.cellWidget(row_idx, 0).setText(record.get("name", ""))
-                        self.tableWidget.cellWidget(row_idx, 1).setText(record.get("family_name", ""))
-                        idx = self.tableWidget.cellWidget(row_idx, 2).findText(record.get("color", ""))
+                        self.tableWidget.cellWidget(row_idx, 0).setText(
+                            record.get("name", "")
+                        )
+                        self.tableWidget.cellWidget(row_idx, 1).setText(
+                            record.get("family_name", "")
+                        )
+                        idx = self.tableWidget.cellWidget(row_idx, 2).findText(
+                            record.get("color", "")
+                        )
                         if idx >= 0:
                             self.tableWidget.cellWidget(row_idx, 2).setCurrentIndex(idx)
-                        idx = self.tableWidget.cellWidget(row_idx, 3).findText(record.get("scene", ""))
+                        idx = self.tableWidget.cellWidget(row_idx, 3).findText(
+                            record.get("scene", "")
+                        )
                         if idx >= 0:
                             self.tableWidget.cellWidget(row_idx, 3).setCurrentIndex(idx)
-                        self.tableWidget.cellWidget(row_idx, 4).setText(record.get("birth_date", ""))
-                        idx = self.tableWidget.cellWidget(row_idx, 5).findText(str(record.get("group", "")))
+                        # Set date in QDateEdit
+                        birth_date_str = record.get("birth_date", "")
+                        birth_date_widget = self.tableWidget.cellWidget(row_idx, 4)
+                        try:
+                            qdate = QDate.fromString(birth_date_str, "dd-MM-yyyy")
+                            if qdate.isValid():
+                                birth_date_widget.setDate(qdate)
+                        except Exception:
+                            pass
+                        idx = self.tableWidget.cellWidget(row_idx, 5).findText(
+                            str(record.get("group", ""))
+                        )
                         if idx >= 0:
                             self.tableWidget.cellWidget(row_idx, 5).setCurrentIndex(idx)
                     self.update_preview()
                 else:
-                    QMessageBox.critical(self, "Error", "No JSON attachment found in PDF.")
+                    QMessageBox.critical(
+                        self, "Error", "No JSON attachment found in PDF."
+                    )
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error loading PDF: {e}")
 
@@ -339,16 +363,40 @@ class MainWindow(QMainWindow):
     def eventFilter(self, source, event):
         """Watch for focus events on QLineEdit to update preview."""
         from PyQt6.QtCore import QEvent
+
         if event.type() == QEvent.Type.FocusIn:
             # Trigger update_preview when QLineEdit gains focus
             self.update_preview()
         return super().eventFilter(source, event)
 
     def clear_table(self):
-        """Clear the table and add one default row."""
-        self.tableWidget.setRowCount(0)
-        self.newRow()
-        self.update_preview()
+        """Clear the table and add one default row, with confirmation."""
+        reply = QMessageBox.question(
+            self,
+            "🧹 Confirm Clear",  # emoji before text
+            "🧹 Are you sure you want to clear all data?",  # emoji before text
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.tableWidget.setRowCount(0)
+            self.newRow()
+            self.update_preview()
+        # else: do nothing
+
+    def closeEvent(self, event):
+        """Prompt user to save before closing if there is unsaved data."""
+        reply = QMessageBox.question(
+            self,
+            "🚪 Exit",  # emoji before text
+            "🚪 Are you sure you want to exit?\nMake sure you have saved your work.",  # emoji before text
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 
 def main():
@@ -357,6 +405,7 @@ def main():
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
