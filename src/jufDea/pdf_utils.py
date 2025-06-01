@@ -117,7 +117,7 @@ def add_person_page(pdf, row):
                     imgX = x + margin
                     imgY = y + margin + top_offset
 
-                display_name = f"{name}fest" if layout_type == "Fest" else name
+                display_name = name
                 current_font_size = base_font_size
                 pdf.set_font(font_name, size=current_font_size)
 
