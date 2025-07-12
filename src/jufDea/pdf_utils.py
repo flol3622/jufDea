@@ -44,6 +44,8 @@ class MyPDF(FPDF):
             self.add_person(row)
         self.add_page(orientation="P")
         add_group_table_page(self, df)
+        self.add_page(orientation="P")
+        add_group_table_page(self, df)
         self.output(output_path, "F")
         with pikepdf.open(output_path, allow_overwriting_input=True) as pdf:
             json_bytes = df.to_json(orient="records").encode("utf-8")
@@ -184,6 +186,12 @@ def add_person_page(pdf, row):
 def add_group_table_page(pdf, df):
     X_START = 10
     Y_START = 10
+    # Title above the table
+    pdf.set_font("SchoolKX_new_SB", size=20)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, Y_START, "Namenlijst", border=0, ln=1, align="C")
+    # Lower the table to make room for the title
+    Y_START += 12
     CELL_WIDTH = 90
     CELL_HEIGHT = 12
     MARGIN = 0.5
