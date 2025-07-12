@@ -2,7 +2,7 @@
 chcp 65001>nul
 setlocal
 
-call :print_header "[1;36m   🚀 Running jufDeaSoftware 🚀"
+call :print_header "[1;36m   🚀 Running jufBeaSoftware 🚀"
  
 REM Check and install uv if not available
 where uvx >nul 2>&1
@@ -24,7 +24,7 @@ if errorlevel 1 (
 )
 echo.
  
-call :color_echo "[1;34mRunning jufDeaSoftware, installing dependencies if needed..."
+call :color_echo "[1;34mRunning jufBeaSoftware, installing dependencies if needed..."
 uvx --from git+https://github.com/flol3622/jufDea.git@uvx jufDea
 if errorlevel 1 (
     call :color_error "uvx did not work. Please restart the script to use the new tools."

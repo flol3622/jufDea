@@ -88,6 +88,7 @@ def add_person_page(pdf, row):
             for top, left in zip(tops, lefts):
                 x, y = left, top
                 pdf.rect(x, y, width, height, style="D")
+
                 size_img = (
                     (height - 2 * margin) if not portrait else (width - 2 * margin)
                 )
@@ -156,6 +157,13 @@ def add_person_page(pdf, row):
                 )
 
                 pdf.image(str(image_path), imgX, imgY, w=0, h=size_img)
+
+                if layout_type == "Large":
+                    # Overlay logo on top of the main image
+                    with pkg_resources.as_file(
+                        pkg_resources.files(GUI) / "assets" / "logo.png"
+                    ) as logo_path:
+                        pdf.image(str(logo_path), x + 3, y + 3, w=20)
 
                 if layout_type == "Fest":
                     pdf.set_font(font_name, size=current_font_size)
