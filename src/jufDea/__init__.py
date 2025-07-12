@@ -195,11 +195,29 @@ class MainWindow(QMainWindow):
         self.update_preview()
 
     def removeRow(self):
-        """Remove the last row if there is more than one row."""
+        """Remove the current active row, visualize the row above, or add a new row if table is empty."""
+        # Block signals to prevent premature preview updates during removal
+        self.tableWidget.blockSignals(True)
+        # Determine the currently selected row; default to last if invalid
+        current = self.tableWidget.currentRow()
         count = self.tableWidget.rowCount()
-        if count > 1:
-            self.tableWidget.removeRow(count - 1)
-            self.update_preview()
+        if not 0 <= current < count:
+            current = count - 1 if count > 0 else 0
+        # Remove the selected row
+        self.tableWidget.removeRow(current)
+        # After removal, adjust selection or add a new row if none left
+        new_count = self.tableWidget.rowCount()
+        if new_count == 0:
+            # No rows left: insert a new empty row and select it
+            self.newRow()
+            self.tableWidget.setCurrentCell(0, 0)
+        else:
+            # Select the row above removed one (or first row if removed first)
+            new_index = current - 1 if current > 0 else 0
+            self.tableWidget.setCurrentCell(new_index, 0)
+        # Unblock signals and update preview once
+        self.tableWidget.blockSignals(False)
+        self.update_preview()
 
     def validate_birthdate(self, date_str):
         """Validate birth date format: accepts DD-MM-YYYY or D-M-YYYY."""
@@ -210,20 +228,24 @@ class MainWindow(QMainWindow):
         """Convert the table data to a pandas DataFrame. If validate_birthdate is True, returns (df, invalid_row_idx) if invalid birthdate found."""
         rows = []
         for row in range(self.tableWidget.rowCount()):
-            name = self.tableWidget.cellWidget(row, 0).text()
-            family_name = self.tableWidget.cellWidget(row, 1).text()
-            color = self.tableWidget.cellWidget(row, 2).currentText()
-            scene = self.tableWidget.cellWidget(row, 3).currentText()
-            # Get date from QDateEdit and format as string
-            birth_date_widget = self.tableWidget.cellWidget(row, 4)
-            birth_date = birth_date_widget.date().toString("dd-MM-yyyy")
-            group = int(self.tableWidget.cellWidget(row, 5).currentText())
-            image_path = self._potloden_map.get((scene, color), "")
-            # Validate birthdate only if requested (always valid now)
-            if validate_birthdate and not self.validate_birthdate(birth_date):
-                return None, row
-            rows.append(
-                {
+            try:
+                # Skip row if any widget is missing
+                name_widget = self.tableWidget.cellWidget(row, 0)
+                if name_widget is None:
+                    continue
+                name = name_widget.text()
+                family_name = self.tableWidget.cellWidget(row, 1).text()
+                color = self.tableWidget.cellWidget(row, 2).currentText()
+                scene = self.tableWidget.cellWidget(row, 3).currentText()
+                # Get date from QDateEdit and format as string
+                birth_date_widget = self.tableWidget.cellWidget(row, 4)
+                birth_date = birth_date_widget.date().toString("dd-MM-yyyy")
+                group = int(self.tableWidget.cellWidget(row, 5).currentText())
+                image_path = self._potloden_map.get((scene, color), "")
+                # Validate birthdate only if requested (always valid now)
+                if validate_birthdate and not self.validate_birthdate(birth_date):
+                    return None, row
+                rows.append({
                     "name": name,
                     "family_name": family_name,
                     "color": color,
@@ -231,8 +253,10 @@ class MainWindow(QMainWindow):
                     "birth_date": birth_date,
                     "group": group,
                     "image_path": image_path,
-                }
-            )
+                })
+            except AttributeError:
+                # Skip incomplete rows without widgets
+                continue
         if validate_birthdate:
             return pd.DataFrame(rows), None
         else:
