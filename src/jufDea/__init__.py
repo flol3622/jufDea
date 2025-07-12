@@ -1,5 +1,4 @@
 # Standard library imports
-import datetime
 import json
 import os
 import sys
@@ -178,7 +177,7 @@ class MainWindow(QMainWindow):
         birthEdit = QDateEdit()
         birthEdit.setDisplayFormat("dd-MM-yyyy")
         birthEdit.setCalendarPopup(True)
-        birthEdit.setDate(datetime.date(2000, 1, 1))
+        birthEdit.setDate(QDate(2019, 1, 1))
         birthEdit.dateChanged.connect(self.update_preview)
         self.tableWidget.setCellWidget(rowPosition, 4, birthEdit)
 
