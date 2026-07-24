@@ -26,7 +26,4 @@ perl -0pi -e 's#<div id="loading">.*?</div>#<div id="loading"><strong>Naamkaartj
 perl -0pi -e 's!#loading \{ padding: 2em; font-family: sans-serif; color: #666; \}!#loading { min-height: 100vh; display: grid; place-content: center; gap: .4rem; padding: 2rem; text-align: center; font-family: sans-serif; color: #356859; background: #f5f4ef; }!' \
     "$client_dir/index.html"
 
-mkdir -p "$output_dir/server"
-cp "$project_dir/static/worker.js" "$output_dir/server/index.js"
-
 echo "Static site built in $output_dir"
