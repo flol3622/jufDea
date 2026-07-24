@@ -1,15 +1,31 @@
 [project]
 name = "jufdea"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.9"
+description = "Generate personalized classroom name-card PDFs with NiceGUI"
+readme = "readme.md"
+requires-python = ">=3.10"
 dependencies = [
-    "auto-py-to-exe",
-    "fpdf",
-    "frontend",
-    "pikepdf",
-    "pymupdf",
-    "pyqt6",
-    "pyqt6-tools>=6.4.2.3.3",
+    "fpdf2>=2.8,<3",
+    "nicegui>=3.12,<4",
+    "pymupdf>=1.26,<2",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "pytest-asyncio>=1,<2",
+    "ruff>=0.12,<1",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+main_file = "app.py"
+pythonpath = ["."]
+testpaths = ["tests"]

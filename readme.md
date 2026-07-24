@@ -1,14 +1,44 @@
-setup:
-```shell
-conda create -n kaartenGUI python=3.8
-conda activate kaartenGUI
+# JufDea naamkaartjes
 
-pip install uv
-uv pip install auto-py-to-exe pyqt6-tools
+Een kleine NiceGUI-app om gepersonaliseerde naamkaartjes en een groepslijst als
+PDF te maken.
+
+## Starten
+
+Installeer [uv](https://docs.astral.sh/uv/) en voer daarna uit:
+
+```shell
+uv sync
+uv run python app.py
 ```
 
+Open vervolgens <http://localhost:8080>. Elke browser-tab heeft een eigen lijst
+met leerlingen. De knop **PDF downloaden** maakt één liggende pagina per
+leerling en voegt achteraan de groepslijst toe.
 
-Qt Designer:
+Een gedownloade PDF bevat ook de leerlingen en layout waarmee hij is gemaakt.
+Gebruik **PDF openen** om zo'n bestand later opnieuw te bewerken. Oudere
+JufDea-PDF's met `table.json`- en `layout.json`-bijlagen worden eveneens
+ondersteund. Bij oudere JufDea-PDF's zonder bijlagen probeert de app de
+leerlingen, groepen en afbeeldingen uit de pagina's te reconstrueren. Gewone
+PDF's die de JufDea-layout niet volgen worden geweigerd.
+
+## Werking
+
+- `app.py` bevat uitsluitend de NiceGUI-pagina en interacties.
+- `models.py` bevat de leerlinggegevens, afbeeldingencatalogus en validatie.
+- `pdf_utils.py` rendert previews en volledige PDF's.
+- `layout.json` bevat de bewerkbare afmetingen en posities.
+- `GUI/images/potloden` en `GUI/assets` bevatten de PDF-assets.
+
+De layout kan vanuit de app via **Instellingen** als JSON worden aangepast. De
+preview gebruikt altijd de actieve layout. Tekstinvoer wordt kort gebundeld en
+de preview wordt als afbeelding ververst, zodat de vorige preview zichtbaar
+blijft tijdens het renderen.
+
+## Ontwikkeling
+
 ```shell
-pyqt6-tools designer
+uv run ruff check .
+uv run pytest
 ```
