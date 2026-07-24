@@ -2,15 +2,18 @@ from pathlib import Path
 
 from models import ImageCatalog, Person, validate_people
 
-IMAGE_DIR = Path(__file__).parents[1] / "GUI" / "images" / "potloden"
+IMAGE_DIR = Path(__file__).parents[1] / "GUI" / "images" / "ontwerpen"
 
 
 def test_catalog_discovers_assets() -> None:
     catalog = ImageCatalog(IMAGE_DIR)
 
-    assert "blij" in catalog.scenes
-    assert "blauw" in catalog.colors
-    assert catalog.image_for(Person(scene="blij", color="blauw")).is_file()
+    assert catalog.scenes == ["bloem", "paraplu", "sjaal", "strikje", "zonnebril"]
+    assert catalog.colors == ["geel", "oranje", "blauw", "rood", "groen", "roze"]
+    assert (
+        catalog.image_for(Person(scene="paraplu", color="blauw")).name
+        == "paraplu-03.jpg"
+    )
 
 
 def test_validate_people_reports_invalid_rows() -> None:
@@ -46,6 +49,6 @@ def test_person_loads_scene_and_color_from_legacy_image_path() -> None:
 
 def test_catalog_identifies_extracted_image_bytes() -> None:
     catalog = ImageCatalog(IMAGE_DIR)
-    image = (IMAGE_DIR / "bril-groen.jpg").read_bytes()
+    image = (IMAGE_DIR / "zonnebril-11.jpg").read_bytes()
 
-    assert catalog.selection_for_image(image) == ("bril", "groen")
+    assert catalog.selection_for_image(image) == ("zonnebril", "groen")

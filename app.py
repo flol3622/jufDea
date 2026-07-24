@@ -20,8 +20,9 @@ from pdf_utils import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-IMAGE_DIR = BASE_DIR / "GUI" / "images" / "potloden"
+IMAGE_DIR = BASE_DIR / "GUI" / "images" / "ontwerpen"
 DOWNLOAD_NAME = "naamkaartjes.pdf"
+APP_VERSION = "v2026"
 
 
 class AppPage:
@@ -62,6 +63,7 @@ class AppPage:
         with ui.header().classes("items-center px-6 py-3"):
             ui.icon("school", size="28px")
             ui.label("Naamkaartjes").classes("text-xl font-semibold")
+            ui.badge(APP_VERSION).props("color=secondary")
             ui.space()
             ui.button(
                 "PDF openen",
@@ -467,7 +469,7 @@ def index() -> None:
 
 
 def main() -> None:
-    ui.run(title="Naamkaartjes", favicon="🎓")
+    ui.run(title=f"Naamkaartjes {APP_VERSION}", favicon="🎓")
 
 
 if __name__ in {"__main__", "__mp_main__"}:

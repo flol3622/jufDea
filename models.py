@@ -6,6 +6,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+DESIGN_COLORS = ("geel", "oranje", "blauw", "rood", "groen", "roze")
+
 
 @dataclass(slots=True)
 class Person:
@@ -52,20 +54,40 @@ class Person:
 
 
 class ImageCatalog:
-    """Discovers pencil images and resolves scene/color selections."""
+    """Discover card designs and resolve their theme/color selections.
+
+    The artwork is numbered in groups of six. Within every group, the variants
+    use the same color order defined by ``DESIGN_COLORS``.
+    """
 
     def __init__(self, image_dir: Path) -> None:
         self.image_dir = image_dir
-        self._images = {
-            tuple(path.stem.split("-", maxsplit=1)): path
-            for path in sorted(image_dir.glob("*.jpg"))
-            if "-" in path.stem
-        }
+        self._images: dict[tuple[str, str], Path] = {}
+        for path in sorted(image_dir.glob("*.jpg")):
+            if "-" not in path.stem:
+                continue
+            scene, variant = path.stem.rsplit("-", maxsplit=1)
+            try:
+                variant_number = int(variant)
+            except ValueError:
+                color = variant
+            else:
+                color = DESIGN_COLORS[(variant_number - 1) % len(DESIGN_COLORS)]
+            selection = (scene, color)
+            if selection in self._images:
+                raise ValueError(
+                    f"Duplicate design for scene '{scene}' and color '{color}'"
+                )
+            self._images[selection] = path
+
         if not self._images:
-            raise FileNotFoundError(f"No scene-color images found in {image_dir}")
+            raise FileNotFoundError(f"No card designs found in {image_dir}")
 
         self.scenes = sorted({scene for scene, _ in self._images})
-        self.colors = sorted({color for _, color in self._images})
+        available_colors = {color for _, color in self._images}
+        self.colors = [
+            color for color in DESIGN_COLORS if color in available_colors
+        ] + sorted(available_colors - set(DESIGN_COLORS))
         self._image_hashes = {
             sha256(path.read_bytes()).digest(): selection
             for selection, path in self._images.items()
@@ -89,7 +111,7 @@ class ImageCatalog:
         try:
             return self._image_hashes[sha256(image).digest()]
         except KeyError as error:
-            raise ValueError("De PDF bevat een onbekende potloodafbeelding.") from error
+            raise ValueError("De PDF bevat een onbekende kaartafbeelding.") from error
 
 
 def validate_people(people: list[Person], catalog: ImageCatalog) -> list[str]:

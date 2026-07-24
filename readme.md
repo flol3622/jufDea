@@ -1,4 +1,4 @@
-# JufDea naamkaartjes
+# JufDea naamkaartjes v2026
 
 Een kleine NiceGUI-app om gepersonaliseerde naamkaartjes en een groepslijst als
 PDF te maken.
@@ -29,7 +29,7 @@ PDF's die de JufDea-layout niet volgen worden geweigerd.
 - `models.py` bevat de leerlinggegevens, afbeeldingencatalogus en validatie.
 - `pdf_utils.py` rendert previews en volledige PDF's.
 - `layout.json` bevat de bewerkbare afmetingen en posities.
-- `GUI/images/potloden` en `GUI/assets` bevatten de PDF-assets.
+- `GUI/images/ontwerpen` en `GUI/assets` bevatten de PDF-assets.
 
 De layout kan vanuit de app via **Instellingen** als JSON worden aangepast. De
 preview gebruikt altijd de actieve layout. Tekstinvoer wordt kort gebundeld en

@@ -1,6 +1,6 @@
 [project]
 name = "jufdea"
-version = "0.1.0"
+version = "2026"
 description = "Generate personalized classroom name-card PDFs with NiceGUI"
 readme = "readme.md"
 requires-python = ">=3.10"

@@ -6,6 +6,7 @@ import app  # noqa: F401  # register the NiceGUI page
 async def test_preview_button_follows_active_row(user: User) -> None:
     await user.open("/")
 
+    await user.should_see("v2026")
     await user.should_see("PDF openen")
     open_button = next(iter(user.find("PDF openen").elements))
     assert open_button.props["color"] == "white"

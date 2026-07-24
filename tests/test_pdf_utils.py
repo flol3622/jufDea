@@ -15,7 +15,7 @@ from pdf_utils import (
 )
 
 ROOT = Path(__file__).parents[1]
-CATALOG = ImageCatalog(ROOT / "GUI" / "images" / "potloden")
+CATALOG = ImageCatalog(ROOT / "GUI" / "images" / "ontwerpen")
 
 
 def test_layout_is_valid() -> None:
@@ -82,7 +82,7 @@ def test_attachment_free_generated_pdf_is_reconstructed() -> None:
     people[1].name = "Grace"
     people[1].family_name = "Hopper"
     people[1].birth_date = "09-12-2013"
-    people[1].scene = "bril"
+    people[1].scene = "zonnebril"
     people[1].color = "groen"
     people[1].group = 2
     pdf = PdfGenerator().document(people, CATALOG)
