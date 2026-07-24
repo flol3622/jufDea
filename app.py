@@ -3,14 +3,20 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
 
-from nicegui import background_tasks, events, run, ui
+IS_PYODIDE = sys.platform == "emscripten"
 
-from models import ImageCatalog, Person, validate_people
-from pdf_utils import (
+if IS_PYODIDE:
+    import nicegui_pyodide  # noqa: F401  # install browser runtime shims
+
+from nicegui import background_tasks, events, run, ui  # noqa: E402
+
+from models import ImageCatalog, Person, validate_people  # noqa: E402
+from pdf_utils import (  # noqa: E402
     DEFAULT_LAYOUT_PATH,
     PdfGenerator,
     load_layout,
@@ -23,6 +29,56 @@ BASE_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = BASE_DIR / "GUI" / "images" / "ontwerpen"
 DOWNLOAD_NAME = "naamkaartjes.pdf"
 APP_VERSION = "v2026"
+LAYOUT_STORAGE_KEY = "jufdea-layout-v2026"
+
+
+async def _io_bound(function: Any, *args: Any) -> Any:
+    """Run blocking work off-thread where possible.
+
+    Pyodide runs in a browser sandbox without the thread helper used by the
+    server build, so it executes the same function in the local interpreter.
+    """
+
+    if IS_PYODIDE:
+        return function(*args)
+    return await run.io_bound(function, *args)
+
+
+def _load_active_layout() -> dict[str, Any]:
+    layout = load_layout()
+    if not IS_PYODIDE:
+        return layout
+
+    from js import localStorage  # type: ignore[import-not-found]
+
+    stored = localStorage.getItem(LAYOUT_STORAGE_KEY)
+    if not stored:
+        return layout
+    try:
+        value = json.loads(str(stored))
+        from pdf_utils import validate_layout
+
+        validate_layout(value)
+    except (json.JSONDecodeError, ValueError):
+        localStorage.removeItem(LAYOUT_STORAGE_KEY)
+        return layout
+    return value
+
+
+def _save_active_layout(layout: dict[str, Any]) -> None:
+    if not IS_PYODIDE:
+        save_layout(layout, DEFAULT_LAYOUT_PATH)
+        return
+
+    from js import localStorage  # type: ignore[import-not-found]
+
+    from pdf_utils import validate_layout
+
+    validate_layout(layout)
+    localStorage.setItem(
+        LAYOUT_STORAGE_KEY,
+        json.dumps(layout, ensure_ascii=False),
+    )
 
 
 class AppPage:
@@ -31,7 +87,7 @@ class AppPage:
     def __init__(self) -> None:
         self.catalog = ImageCatalog(IMAGE_DIR)
         self.generator = PdfGenerator()
-        self.layout = load_layout()
+        self.layout = _load_active_layout()
         self.people = [self.catalog.new_person()]
         self.selected_person = self.people[0]
         self.preview_task: asyncio.Task[Any] | None = None
@@ -365,7 +421,7 @@ class AppPage:
     async def _update_preview_after(self, delay: float) -> None:
         try:
             await asyncio.sleep(delay)
-            source = await run.io_bound(self._preview_source)
+            source = await _io_bound(self._preview_source)
         except asyncio.CancelledError:
             return
         except Exception as error:
@@ -396,7 +452,7 @@ class AppPage:
         async def open_pdf(event: events.UploadEventArguments) -> None:
             try:
                 data = await event.file.read()
-                project = await run.io_bound(load_pdf_project, data, self.catalog)
+                project = await _io_bound(load_pdf_project, data, self.catalog)
             except Exception as error:
                 ui.notify(f"PDF kon niet worden geopend: {error}", type="negative")
                 return
@@ -448,7 +504,7 @@ class AppPage:
             def save(_: events.ClickEventArguments) -> None:
                 try:
                     value = json.loads(editor.value)
-                    save_layout(value, DEFAULT_LAYOUT_PATH)
+                    _save_active_layout(value)
                 except (json.JSONDecodeError, ValueError) as error:
                     ui.notify(f"Ongeldige layout: {error}", type="negative")
                     return
@@ -463,14 +519,20 @@ class AppPage:
         dialog.open()
 
 
-@ui.page("/")
-def index() -> None:
-    AppPage()
+if IS_PYODIDE:
+    from nicegui import Client
+    from nicegui_pyodide import page
 
+    with Client(page("/")) as client:
+        AppPage()
+else:
 
-def main() -> None:
-    ui.run(title=f"Naamkaartjes {APP_VERSION}", favicon="🎓")
+    @ui.page("/")
+    def index() -> None:
+        AppPage()
 
+    def main() -> None:
+        ui.run(title=f"Naamkaartjes {APP_VERSION}", favicon="🎓")
 
-if __name__ in {"__main__", "__mp_main__"}:
-    main()
+    if __name__ in {"__main__", "__mp_main__"}:
+        main()

@@ -16,6 +16,20 @@ Open vervolgens <http://localhost:8080>. Elke browser-tab heeft een eigen lijst
 met leerlingen. De knop **PDF downloaden** maakt één liggende pagina per
 leerling en voegt achteraan de groepslijst toe.
 
+## Statische website
+
+Dezelfde app kan volledig in de browser draaien met Pyodide. Er worden geen
+leerlinggegevens naar een server gestuurd.
+
+```shell
+./scripts/build-static.sh
+python -m http.server -d dist/client 8080
+```
+
+Open vervolgens <http://localhost:8080>. De eerste start duurt langer omdat de
+browser Python en de PDF-bibliotheken moet laden. Layout-instellingen worden in
+de lokale browseropslag bewaard.
+
 Een gedownloade PDF bevat ook de leerlingen en layout waarmee hij is gemaakt.
 Gebruik **PDF openen** om zo'n bestand later opnieuw te bewerken. Oudere
 JufDea-PDF's met `table.json`- en `layout.json`-bijlagen worden eveneens

@@ -1,0 +1,5 @@
+packages = ["micropip", "fpdf2", "PyMuPDF"]
+
+[files]
+"./app.py" = "./app.py"
+"./app-assets.zip" = "./*"
