@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -174,15 +175,47 @@ class AppPage:
                         .classes("w-32")
                     )
                     birth_input = (
-                        ui.input(
-                            "Geboortedatum",
-                            value=person.birth_date,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "birth_date", event.value
-                            ),
-                        )
+                        ui.input("Geboortedatum", value=person.birth_date)
                         .props('dense outlined debounce=350 mask="##-##-####"')
                         .classes("w-36")
+                        .mark(f"birth-date-{index}")
+                    )
+                    with birth_input:
+                        with ui.menu().props("no-parent-event") as calendar_menu:
+                            birth_picker = (
+                                ui.date(
+                                    value=self._valid_birth_date(person.birth_date),
+                                    mask="DD-MM-YYYY",
+                                )
+                                .props("first-day-of-week=1")
+                                .mark(f"birth-date-picker-{index}")
+                            )
+                        with birth_input.add_slot("append"):
+                            (
+                                ui.icon("calendar_month")
+                                .classes("cursor-pointer")
+                                .on("click", calendar_menu.open)
+                                .tooltip("Kies een datum")
+                            )
+                    birth_input.on_value_change(
+                        lambda event,
+                        person=person,
+                        birth_picker=birth_picker: self._type_birth_date(
+                            person,
+                            birth_picker,
+                            event.value,
+                        )
+                    )
+                    birth_picker.on_value_change(
+                        lambda event,
+                        person=person,
+                        birth_input=birth_input,
+                        calendar_menu=calendar_menu: self._pick_birth_date(
+                            person,
+                            birth_input,
+                            calendar_menu,
+                            event.value,
+                        )
                     )
                     group_select = (
                         ui.select(
@@ -219,6 +252,38 @@ class AppPage:
         setattr(person, field, value)
         self._set_selected_person(person)
         self._schedule_preview()
+
+    @staticmethod
+    def _valid_birth_date(value: str) -> str | None:
+        try:
+            day, month, year = map(int, value.strip().split("-"))
+            date(year, month, day)
+        except (AttributeError, TypeError, ValueError):
+            return None
+        return value
+
+    def _type_birth_date(
+        self,
+        person: Person,
+        birth_picker: Any,
+        value: str | None,
+    ) -> None:
+        birth_date = value or ""
+        self._set_value(person, "birth_date", birth_date)
+        if self._valid_birth_date(birth_date):
+            birth_picker.set_value(birth_date)
+
+    def _pick_birth_date(
+        self,
+        person: Person,
+        birth_input: Any,
+        calendar_menu: Any,
+        value: str | None,
+    ) -> None:
+        if not value:
+            return
+        birth_input.set_value(value)
+        calendar_menu.close()
 
     def _select_person(self, person: Person) -> None:
         if person is self.selected_person:

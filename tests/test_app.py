@@ -26,3 +26,23 @@ async def test_preview_button_follows_active_row(user: User) -> None:
     assert first_button.props["color"] == "secondary"
     assert first_button.props["icon"] == "visibility"
     assert second_button.props["color"] == "primary"
+
+
+async def test_birth_date_has_optional_calendar(user: User) -> None:
+    await user.open("/")
+
+    birth_input = next(iter(user.find(marker="birth-date-0").elements))
+    birth_picker = next(iter(user.find(marker="birth-date-picker-0").elements))
+
+    assert birth_input.value == "01-01-2000"
+    assert birth_picker.value == "01-01-2000"
+    assert birth_picker.props["mask"] == "DD-MM-YYYY"
+
+    user.find(marker="birth-date-picker-0").trigger(
+        "update:modelValue",
+        "14-02-2014",
+    )
+    assert birth_input.value == "14-02-2014"
+
+    user.find(marker="birth-date-0").clear().type("31-12-2012")
+    assert birth_picker.value == "31-12-2012"
