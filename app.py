@@ -114,24 +114,55 @@ class AppPage:
         ui.colors(primary="#356859", secondary="#FD5523", accent="#F4B942")
         ui.add_css(
             """
-            body { background: #f5f4ef; color: #24332f; }
+            body {
+                background:
+                    radial-gradient(1100px 500px at 15% -10%,
+                        rgba(53, 104, 89, 0.10), transparent 60%),
+                    radial-gradient(900px 420px at 95% 0%,
+                        rgba(244, 185, 66, 0.12), transparent 55%),
+                    #f6f4ee;
+                color: #24332f;
+            }
+            .app-header {
+                background: linear-gradient(105deg, #2c584c 0%, #356859 55%,
+                    #47806f 100%) !important;
+                box-shadow: 0 2px 12px rgba(36, 51, 47, 0.25);
+            }
+            .app-card {
+                border-radius: 18px !important;
+                border: 1px solid rgba(36, 51, 47, 0.08);
+                box-shadow: 0 8px 24px rgba(36, 51, 47, 0.07) !important;
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: blur(4px);
+            }
             .editor-card { min-width: 680px; }
             .preview-card {
                 min-width: 440px;
                 position: sticky;
                 top: 88px;
             }
-            .person-row {
-                border: 1px solid #d8ddd8;
-                border-radius: 12px;
-                transition: border-color 0.15s ease, background-color 0.15s ease,
-                    box-shadow 0.15s ease;
+            .preview-frame {
+                border: 1px solid rgba(36, 51, 47, 0.10);
+                background: repeating-conic-gradient(#fafafa 0% 25%, #ffffff 0% 50%)
+                    50% / 22px 22px;
             }
-            .person-row:hover { box-shadow: 0 2px 10px rgba(36, 51, 47, 0.10); }
+            .person-row {
+                border: 1px solid #dde2dd;
+                border-radius: 14px;
+                transition: border-color 0.15s ease, background-color 0.15s ease,
+                    box-shadow 0.15s ease, transform 0.15s ease;
+            }
+            .person-row:hover {
+                box-shadow: 0 4px 14px rgba(36, 51, 47, 0.12);
+                transform: translateY(-1px);
+                border-color: #b9c6bf;
+            }
             .person-row.active {
                 border-color: #FD5523;
-                background: #fff7ed;
+                background: linear-gradient(180deg, #fff8f0, #fff3e4);
+                box-shadow: 0 4px 16px rgba(253, 85, 35, 0.14);
             }
+            .section-title { letter-spacing: -0.01em; }
             .color-dot {
                 width: 14px;
                 height: 14px;
@@ -146,26 +177,30 @@ class AppPage:
             """
         )
 
-        with ui.header().classes("items-center px-6 py-3"):
+        with ui.header().classes("app-header items-center px-6 py-3 gap-3"):
             ui.icon("school", size="28px")
-            ui.label("Naamkaartjes").classes("text-xl font-semibold")
-            ui.badge(APP_VERSION).props("color=secondary")
+            ui.label("Naamkaartjes").classes(
+                "text-xl font-semibold tracking-tight"
+            )
+            ui.badge(APP_VERSION).props("color=secondary").classes("rounded-full")
             ui.space()
             ui.button(
                 "PDF openen",
                 icon="folder_open",
                 on_click=self._open_pdf_dialog,
-            ).props("flat no-caps color=white")
+            ).props("flat no-caps rounded color=white")
             ui.button("Instellingen", icon="tune", on_click=self._open_settings).props(
-                "flat no-caps color=white"
+                "flat no-caps rounded color=white"
             )
 
         with ui.row().classes("w-full items-start gap-5 p-5 flex-wrap"):
-            with ui.card().classes("editor-card flex-1 p-5 shadow-sm"):
+            with ui.card().classes("app-card editor-card flex-1 p-5"):
                 with ui.row().classes("w-full items-center"):
                     with ui.column().classes("gap-0"):
                         with ui.row().classes("items-baseline gap-2"):
-                            ui.label("Leerlingen").classes("text-xl font-semibold")
+                            ui.label("Leerlingen").classes(
+                                "section-title text-xl font-semibold"
+                            )
                             self.count_label = ui.label("").classes(
                                 "text-sm text-grey-6"
                             )
@@ -173,7 +208,9 @@ class AppPage:
                             "Vul de gegevens in en selecteer een rij voor de preview."
                         ).classes("text-sm text-grey-7")
                     ui.space()
-                    ui.button("Rij toevoegen", icon="add", on_click=self._add_person)
+                    ui.button(
+                        "Rij toevoegen", icon="add", on_click=self._add_person
+                    ).props("unelevated no-caps rounded")
 
                 self.rows = ui.column().classes("w-full gap-3 mt-3")
 
@@ -182,11 +219,11 @@ class AppPage:
                         "PDF downloaden",
                         icon="download",
                         on_click=self._download_pdf,
-                    ).props("unelevated")
+                    ).props("unelevated no-caps rounded color=secondary size=md")
 
-            with ui.card().classes("preview-card flex-1 p-5 shadow-sm"):
+            with ui.card().classes("app-card preview-card flex-1 p-5"):
                 with ui.row().classes("w-full items-center gap-2"):
-                    ui.label("Preview").classes("text-xl font-semibold")
+                    ui.label("Preview").classes("section-title text-xl font-semibold")
                     self.preview_spinner = ui.spinner(size="20px").props(
                         "color=secondary"
                     )
@@ -196,7 +233,7 @@ class AppPage:
                 self.preview_error.set_visibility(False)
                 self.preview = (
                     ui.image("")
-                    .classes("w-full mt-2 rounded-lg bg-white shadow-inner")
+                    .classes("preview-frame w-full mt-2 rounded-xl")
                     .props("no-spinner no-transition fit=contain")
                 )
 
@@ -562,7 +599,7 @@ class AppPage:
                 type="positive",
             )
 
-        with dialog, ui.card().classes("w-[560px] max-w-[95vw] p-5"):
+        with dialog, ui.card().classes("app-card w-[560px] max-w-[95vw] p-5"):
             ui.label("Bestaande PDF openen").classes("text-xl font-semibold")
             ui.label(
                 "Kies een PDF die eerder met JufDea inclusief projectgegevens "
@@ -584,7 +621,7 @@ class AppPage:
 
     def _open_settings(self) -> None:
         dialog = ui.dialog()
-        with dialog, ui.card().classes("w-[800px] max-w-[95vw]"):
+        with dialog, ui.card().classes("app-card w-[800px] max-w-[95vw]"):
             ui.label("Layout-instellingen").classes("text-xl font-semibold")
             ui.label(
                 "Pas de JSON-layout aan. De preview wordt na opslaan vernieuwd."
