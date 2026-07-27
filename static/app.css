@@ -1,0 +1,81 @@
+body {
+    background:
+        radial-gradient(1100px 500px at 15% -10%,
+            rgba(53, 104, 89, 0.10), transparent 60%),
+        radial-gradient(900px 420px at 95% 0%,
+            rgba(244, 185, 66, 0.12), transparent 55%),
+        #f6f4ee;
+    color: #24332f;
+}
+
+.app-header {
+    background: linear-gradient(105deg, #2c584c 0%, #356859 55%,
+        #47806f 100%) !important;
+    box-shadow: 0 2px 12px rgba(36, 51, 47, 0.25);
+}
+
+.app-card {
+    border-radius: 18px !important;
+    border: 1px solid rgba(36, 51, 47, 0.08);
+    box-shadow: 0 8px 24px rgba(36, 51, 47, 0.07) !important;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+}
+
+.editor-card {
+    min-width: 680px;
+}
+
+.preview-card {
+    min-width: 440px;
+    position: sticky;
+    top: 88px;
+}
+
+.preview-frame {
+    border: 1px solid rgba(36, 51, 47, 0.10);
+    background: repeating-conic-gradient(#fafafa 0% 25%, #ffffff 0% 50%)
+        50% / 22px 22px;
+}
+
+.person-row {
+    border: 1px solid #dde2dd;
+    border-radius: 14px;
+    transition: border-color 0.15s ease, background-color 0.15s ease,
+        box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.person-row:hover {
+    box-shadow: 0 4px 14px rgba(36, 51, 47, 0.12);
+    transform: translateY(-1px);
+    border-color: #b9c6bf;
+}
+
+.person-row.active {
+    border-color: #FD5523;
+    background: linear-gradient(180deg, #fff8f0, #fff3e4);
+    box-shadow: 0 4px 16px rgba(253, 85, 35, 0.14);
+}
+
+.section-title {
+    letter-spacing: -0.01em;
+}
+
+.color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    display: inline-block;
+}
+
+@media (max-width: 900px) {
+    .editor-card,
+    .preview-card {
+        min-width: 100%;
+    }
+
+    .preview-card {
+        position: static;
+    }
+}
