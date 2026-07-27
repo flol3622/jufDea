@@ -212,7 +212,7 @@ class PdfGenerator:
             image_x = x + margin
             image_y = y + margin + top_offset
 
-        display_name = f"{name}fest" if layout_type == "Fest" else name
+        display_name = name
         font_size = PdfGenerator._fit_font(
             pdf,
             display_name,

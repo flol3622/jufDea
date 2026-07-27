@@ -15,6 +15,7 @@ dev = [
     "pytest>=8,<10",
     "pytest-asyncio>=1,<2",
     "ruff>=0.12,<1",
+    "ty>=0.0.63,<1",
 ]
 
 [tool.ruff]
@@ -23,6 +24,11 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["B", "E", "F", "I", "SIM", "UP"]
+
+[tool.ty.src]
+# Pyodide executes this bootstrap as a script with top-level await and provides
+# its browser-only imports dynamically.
+exclude = ["static/entrypoint.py"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

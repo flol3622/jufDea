@@ -30,6 +30,15 @@ IMAGE_DIR = BASE_DIR / "GUI" / "images" / "ontwerpen"
 DOWNLOAD_NAME = "naamkaartjes.pdf"
 APP_VERSION = "v2026"
 LAYOUT_STORAGE_KEY = "jufdea-layout-v2026"
+COLOR_SWATCHES = {
+    "geel": "#F0C419",
+    "oranje": "#F57C00",
+    "blauw": "#1E88E5",
+    "rood": "#E53935",
+    "groen": "#43A047",
+    "roze": "#EC5FA0",
+}
+FALLBACK_SWATCH = "#9E9E9E"
 
 
 async def _io_bound(function: Any, *args: Any) -> Any:
@@ -96,6 +105,9 @@ class AppPage:
         self.rows: ui.column
         self.preview: ui.image
         self.preview_error: ui.label
+        self.preview_caption: ui.label
+        self.preview_spinner: ui.spinner
+        self.count_label: ui.label
         self._build()
 
     def _build(self) -> None:
@@ -104,14 +116,32 @@ class AppPage:
             """
             body { background: #f5f4ef; color: #24332f; }
             .editor-card { min-width: 680px; }
-            .preview-card { min-width: 440px; }
-            .person-row { border: 1px solid #d8ddd8; border-radius: 12px; }
+            .preview-card {
+                min-width: 440px;
+                position: sticky;
+                top: 88px;
+            }
+            .person-row {
+                border: 1px solid #d8ddd8;
+                border-radius: 12px;
+                transition: border-color 0.15s ease, background-color 0.15s ease,
+                    box-shadow 0.15s ease;
+            }
+            .person-row:hover { box-shadow: 0 2px 10px rgba(36, 51, 47, 0.10); }
             .person-row.active {
                 border-color: #FD5523;
                 background: #fff7ed;
             }
+            .color-dot {
+                width: 14px;
+                height: 14px;
+                border-radius: 9999px;
+                border: 1px solid rgba(0, 0, 0, 0.25);
+                display: inline-block;
+            }
             @media (max-width: 900px) {
                 .editor-card, .preview-card { min-width: 100%; }
+                .preview-card { position: static; }
             }
             """
         )
@@ -134,7 +164,11 @@ class AppPage:
             with ui.card().classes("editor-card flex-1 p-5 shadow-sm"):
                 with ui.row().classes("w-full items-center"):
                     with ui.column().classes("gap-0"):
-                        ui.label("Leerlingen").classes("text-xl font-semibold")
+                        with ui.row().classes("items-baseline gap-2"):
+                            ui.label("Leerlingen").classes("text-xl font-semibold")
+                            self.count_label = ui.label("").classes(
+                                "text-sm text-grey-6"
+                            )
                         ui.label(
                             "Vul de gegevens in en selecteer een rij voor de preview."
                         ).classes("text-sm text-grey-7")
@@ -151,7 +185,13 @@ class AppPage:
                     ).props("unelevated")
 
             with ui.card().classes("preview-card flex-1 p-5 shadow-sm"):
-                ui.label("Preview").classes("text-xl font-semibold")
+                with ui.row().classes("w-full items-center gap-2"):
+                    ui.label("Preview").classes("text-xl font-semibold")
+                    self.preview_spinner = ui.spinner(size="20px").props(
+                        "color=secondary"
+                    )
+                    self.preview_spinner.set_visibility(False)
+                self.preview_caption = ui.label("").classes("text-sm text-grey-7")
                 self.preview_error = ui.label("").classes("text-negative text-sm mt-2")
                 self.preview_error.set_visibility(False)
                 self.preview = (
@@ -170,127 +210,148 @@ class AppPage:
         with self.rows:
             for index, person in enumerate(self.people):
                 row = ui.row().classes(
-                    "person-row w-full items-center gap-2 p-3 bg-white"
+                    "person-row no-wrap w-full items-center gap-3 p-3 bg-white"
                 )
                 self.row_elements[id(person)] = row
                 with row:
-                    preview_button = (
-                        ui.button(
-                            "Toon",
-                            icon="visibility",
-                            on_click=lambda person=person: self._select_person(person),
+                    with ui.column().classes("items-center gap-0 shrink-0"):
+                        preview_button = (
+                            ui.button(
+                                "Toon",
+                                icon="visibility",
+                                on_click=lambda person=person: self._select_person(
+                                    person
+                                ),
+                            )
+                            .props("dense no-caps")
+                            .mark(f"preview-{index}")
+                            .tooltip("Toon deze rij in de preview")
                         )
-                        .props("dense no-caps")
-                        .mark(f"preview-{index}")
-                        .tooltip("Toon deze rij in de preview")
-                    )
+                        ui.label(f"Rij {index + 1}").classes("text-xs text-grey-6")
                     self.preview_buttons[id(person)] = preview_button
-                    name_input = (
-                        ui.input(
-                            "Voornaam",
-                            value=person.name,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "name", event.value
-                            ),
+                    with ui.row().classes("grow items-center gap-2"):
+                        name_input = (
+                            ui.input(
+                                "Voornaam",
+                                value=person.name,
+                                on_change=lambda event, person=person: self._set_value(
+                                    person, "name", event.value
+                                ),
+                            )
+                            .props("dense outlined debounce=350")
+                            .classes("grow")
+                            .style("min-width: 130px")
+                            .mark(f"name-{index}")
                         )
-                        .props("dense outlined debounce=350")
-                        .classes("grow")
-                        .mark(f"name-{index}")
-                    )
-                    family_input = (
-                        ui.input(
-                            "Familienaam",
-                            value=person.family_name,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "family_name", event.value
-                            ),
+                        family_input = (
+                            ui.input(
+                                "Familienaam",
+                                value=person.family_name,
+                                on_change=lambda event, person=person: self._set_value(
+                                    person, "family_name", event.value
+                                ),
+                            )
+                            .props("dense outlined debounce=350")
+                            .classes("grow")
+                            .style("min-width: 130px")
                         )
-                        .props("dense outlined debounce=350")
-                        .classes("grow")
-                    )
-                    color_select = (
-                        ui.select(
-                            self.catalog.colors,
-                            label="Kleur",
-                            value=person.color,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "color", event.value
-                            ),
+                        color_select = (
+                            ui.select(
+                                self.catalog.colors,
+                                label="Kleur",
+                                value=person.color,
+                            )
+                            .props("dense outlined")
+                            .classes("w-32")
                         )
-                        .props("dense outlined")
-                        .classes("w-28")
-                    )
-                    scene_select = (
-                        ui.select(
-                            self.catalog.scenes,
-                            label="Afbeelding",
-                            value=person.scene,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "scene", event.value
-                            ),
+                        with color_select.add_slot("prepend"):
+                            color_dot = ui.element("span").classes("color-dot")
+                        color_dot.style(
+                            f"background: "
+                            f"{COLOR_SWATCHES.get(person.color, FALLBACK_SWATCH)}"
                         )
-                        .props("dense outlined")
-                        .classes("w-32")
-                    )
-                    birth_input = (
-                        ui.input("Geboortedatum", value=person.birth_date)
-                        .props('dense outlined debounce=350 mask="##-##-####"')
-                        .classes("w-36")
-                        .mark(f"birth-date-{index}")
-                    )
-                    with birth_input:
-                        with ui.menu().props("no-parent-event") as calendar_menu:
-                            birth_picker = (
-                                ui.date(
-                                    value=self._valid_birth_date(person.birth_date),
-                                    mask="DD-MM-YYYY",
+                        color_select.on_value_change(
+                            lambda event,
+                            person=person,
+                            color_dot=color_dot: self._set_color(
+                                person,
+                                color_dot,
+                                event.value,
+                            )
+                        )
+                        scene_select = (
+                            ui.select(
+                                self.catalog.scenes,
+                                label="Afbeelding",
+                                value=person.scene,
+                                on_change=lambda event, person=person: self._set_value(
+                                    person, "scene", event.value
+                                ),
+                            )
+                            .props("dense outlined")
+                            .classes("w-32")
+                        )
+                        birth_input = (
+                            ui.input("Geboortedatum", value=person.birth_date)
+                            .props('dense outlined debounce=350 mask="##-##-####"')
+                            .classes("w-36")
+                            .mark(f"birth-date-{index}")
+                        )
+                        with birth_input:
+                            with ui.menu().props("no-parent-event") as calendar_menu:
+                                birth_picker = (
+                                    ui.date(
+                                        value=self._valid_birth_date(person.birth_date),
+                                        mask="DD-MM-YYYY",
+                                    )
+                                    .props("first-day-of-week=1")
+                                    .mark(f"birth-date-picker-{index}")
                                 )
-                                .props("first-day-of-week=1")
-                                .mark(f"birth-date-picker-{index}")
+                            with birth_input.add_slot("append"):
+                                (
+                                    ui.icon("calendar_month")
+                                    .classes("cursor-pointer")
+                                    .on("click", calendar_menu.open)
+                                    .tooltip("Kies een datum")
+                                )
+                        birth_input.on_value_change(
+                            lambda event,
+                            person=person,
+                            birth_picker=birth_picker: self._type_birth_date(
+                                person,
+                                birth_picker,
+                                event.value,
                             )
-                        with birth_input.add_slot("append"):
-                            (
-                                ui.icon("calendar_month")
-                                .classes("cursor-pointer")
-                                .on("click", calendar_menu.open)
-                                .tooltip("Kies een datum")
+                        )
+                        birth_picker.on_value_change(
+                            lambda event,
+                            person=person,
+                            birth_input=birth_input,
+                            calendar_menu=calendar_menu: self._pick_birth_date(
+                                person,
+                                birth_input,
+                                calendar_menu,
+                                event.value,
                             )
-                    birth_input.on_value_change(
-                        lambda event,
-                        person=person,
-                        birth_picker=birth_picker: self._type_birth_date(
-                            person,
-                            birth_picker,
-                            event.value,
                         )
-                    )
-                    birth_picker.on_value_change(
-                        lambda event,
-                        person=person,
-                        birth_input=birth_input,
-                        calendar_menu=calendar_menu: self._pick_birth_date(
-                            person,
-                            birth_input,
-                            calendar_menu,
-                            event.value,
+                        group_select = (
+                            ui.select(
+                                [1, 2],
+                                label="Groep",
+                                value=person.group,
+                                on_change=lambda event, person=person: self._set_value(
+                                    person, "group", int(event.value)
+                                ),
+                            )
+                            .props("dense outlined")
+                            .classes("w-24")
                         )
-                    )
-                    group_select = (
-                        ui.select(
-                            [1, 2],
-                            label="Groep",
-                            value=person.group,
-                            on_change=lambda event, person=person: self._set_value(
-                                person, "group", int(event.value)
-                            ),
-                        )
-                        .props("dense outlined")
-                        .classes("w-24")
-                    )
                     ui.button(
                         icon="delete_outline",
                         on_click=lambda person=person: self._remove_person(person),
-                    ).props("flat round color=negative").tooltip("Verwijder rij")
+                    ).props("flat round color=negative").classes("shrink-0").tooltip(
+                        "Verwijder rij"
+                    )
                     for control in (
                         name_input,
                         family_input,
@@ -303,8 +364,21 @@ class AppPage:
                             "focus",
                             lambda person=person: self._select_person(person),
                         )
-                ui.label(f"Rij {index + 1}").classes("hidden")
+        self._update_count_label()
         self._sync_preview_selection()
+
+    def _update_count_label(self) -> None:
+        total = len(self.people)
+        group_1 = sum(1 for person in self.people if person.group == 1)
+        group_2 = total - group_1
+        noun = "leerling" if total == 1 else "leerlingen"
+        self.count_label.set_text(
+            f"{total} {noun} · groep 1: {group_1} · groep 2: {group_2}"
+        )
+
+    def _set_color(self, person: Person, color_dot: Any, value: str) -> None:
+        color_dot.style(f"background: {COLOR_SWATCHES.get(value, FALLBACK_SWATCH)}")
+        self._set_value(person, "color", value)
 
     def _set_value(self, person: Person, field: str, value: Any) -> None:
         setattr(person, field, value)
@@ -354,6 +428,21 @@ class AppPage:
         self._sync_preview_selection()
 
     def _sync_preview_selection(self) -> None:
+        selected = self.selected_person
+        selected_index = next(
+            (index for index, person in enumerate(self.people) if person is selected),
+            None,
+        )
+        if selected_index is not None:
+            full_name = " ".join(
+                part.strip()
+                for part in (selected.name, selected.family_name)
+                if part and part.strip()
+            )
+            caption = f"Rij {selected_index + 1}"
+            if full_name:
+                caption += f": {full_name}"
+            self.preview_caption.set_text(caption)
         for person in self.people:
             selected = person is self.selected_person
             button = self.preview_buttons.get(id(person))
@@ -384,8 +473,10 @@ class AppPage:
         if len(self.people) == 1:
             ui.notify("Er moet minstens één rij blijven staan.", type="warning")
             return
-        index = self.people.index(person)
-        self.people.remove(person)
+        index = next(
+            i for i, candidate in enumerate(self.people) if candidate is person
+        )
+        del self.people[index]
         if self.selected_person is person:
             self.selected_person = self.people[min(index, len(self.people) - 1)]
         self._render_rows()
@@ -413,6 +504,7 @@ class AppPage:
     def _schedule_preview(self, *, delay: float = 0.35) -> None:
         if self.preview_task and not self.preview_task.done():
             self.preview_task.cancel()
+        self.preview_spinner.set_visibility(True)
         self.preview_task = background_tasks.create(
             self._update_preview_after(delay),
             name="update PDF preview",
@@ -427,9 +519,11 @@ class AppPage:
         except Exception as error:
             self.preview_error.set_text(f"Preview kon niet worden gemaakt: {error}")
             self.preview_error.set_visibility(True)
+            self.preview_spinner.set_visibility(False)
             return
         self.preview.set_source(source)
         self.preview_error.set_visibility(False)
+        self.preview_spinner.set_visibility(False)
 
     def _download_pdf(self) -> None:
         errors = validate_people(self.people, self.catalog)

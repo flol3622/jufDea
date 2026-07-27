@@ -1,3 +1,7 @@
+from typing import cast
+
+from nicegui.elements.date import Date
+from nicegui.elements.input import Input
 from nicegui.testing import User
 
 import app  # noqa: F401  # register the NiceGUI page
@@ -32,8 +36,14 @@ async def test_preview_button_follows_active_row(user: User) -> None:
 async def test_birth_date_has_optional_calendar(user: User) -> None:
     await user.open("/")
 
-    birth_input = next(iter(user.find(marker="birth-date-0").elements))
-    birth_picker = next(iter(user.find(marker="birth-date-picker-0").elements))
+    birth_input = cast(
+        Input,
+        next(iter(user.find(marker="birth-date-0").elements)),
+    )
+    birth_picker = cast(
+        Date,
+        next(iter(user.find(marker="birth-date-picker-0").elements)),
+    )
 
     assert birth_input.value == "01-01-2000"
     assert birth_picker.value == "01-01-2000"
