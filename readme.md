@@ -23,7 +23,7 @@ leerlinggegevens naar een server gestuurd.
 
 ```shell
 ./scripts/build-static.sh
-python -m http.server -d dist/client 8080
+uvx python -m http.server -d dist/client 8080
 ```
 
 Open vervolgens <http://localhost:8080>. De eerste start duurt langer omdat de
