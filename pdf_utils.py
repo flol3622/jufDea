@@ -102,10 +102,11 @@ class PdfGenerator:
         layout = layout or load_layout(self.layout_path)
         validate_layout(layout)
         pdf = self._new_pdf()
+        self._draw_group_pages(pdf, people, catalog, title="hulpjeslijst")
+        self._draw_group_pages(pdf, people, catalog, title="namenlijst")
         for person in people:
             pdf.add_page(orientation="L")
             self._draw_person_page(pdf, person, catalog, layout)
-        self._draw_group_pages(pdf, people, catalog)
         pdf.embed_file(
             bytes=encode_project(people, layout),
             basename=PROJECT_ATTACHMENT,
@@ -268,6 +269,7 @@ class PdfGenerator:
         pdf: FPDF,
         people: Sequence[Person],
         catalog: ImageCatalog,
+        title: str,
     ) -> None:
         groups = {
             group: sorted(
@@ -276,7 +278,8 @@ class PdfGenerator:
             )
             for group in (1, 2)
         }
-        rows_per_page = 23
+        rows_per_page = 22
+        title_height = 12.0
         page_count = max(
             1,
             math.ceil(max(len(groups[1]), len(groups[2])) / rows_per_page),
@@ -284,13 +287,25 @@ class PdfGenerator:
 
         for page_index in range(page_count):
             pdf.add_page(orientation="P")
+            pdf.set_font(FONT_NAME, size=18)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_xy(10, 8)
+            pdf.cell(190, title_height - 4, title, align="C")
             start = page_index * rows_per_page
             stop = start + rows_per_page
             PdfGenerator._draw_group_column(
-                pdf, x=10, people=groups[1][start:stop], catalog=catalog
+                pdf,
+                x=10,
+                y=10 + title_height,
+                people=groups[1][start:stop],
+                catalog=catalog,
             )
             PdfGenerator._draw_group_column(
-                pdf, x=100, people=groups[2][start:stop], catalog=catalog
+                pdf,
+                x=100,
+                y=10 + title_height,
+                people=groups[2][start:stop],
+                catalog=catalog,
             )
 
     @staticmethod
@@ -298,10 +313,10 @@ class PdfGenerator:
         pdf: FPDF,
         *,
         x: float,
+        y: float,
         people: Sequence[Person],
         catalog: ImageCatalog,
     ) -> None:
-        y = 10.0
         cell_width = 90.0
         cell_height = 12.0
         margin = 0.5
